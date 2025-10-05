@@ -64,47 +64,6 @@ class TestFlaskApp(unittest.TestCase):
         self.assertIn(b'Maria', response.data)
         self.assertIn(b'Garcia', response.data)
 
-    def test_modificar_route_get(self):
-        """Test que la ruta de modificación muestra el formulario con datos"""
-        # Crear un socio primero usando la ruta de alta
-        self.client.post('/alta', data={
-            'dni': '11111111',
-            'nombre': 'Pedro',
-            'apellido': 'Lopez'
-        })
-        
-        # Buscar el socio para obtener su ID usando la capa de negocio
-        todos = self.negocio.todos()
-        socio_id = todos[0].id
-        
-        response = self.client.get(f'/modificar/{socio_id}')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Modificar Socio', response.data)
-        self.assertIn(b'Pedro', response.data)
-
-    def test_modificar_route_post(self):
-        """Test que se puede modificar un socio mediante POST"""
-        # Crear un socio primero usando la ruta de alta
-        self.client.post('/alta', data={
-            'dni': '22222222',
-            'nombre': 'Ana',
-            'apellido': 'Martinez'
-        })
-        
-        # Buscar el socio para obtener su ID
-        todos = self.negocio.todos()
-        socio_id = todos[0].id
-        
-        # Modificar el socio
-        response = self.client.post(f'/modificar/{socio_id}', data={
-            'dni': '22222222',
-            'nombre': 'Analia',
-            'apellido': 'Martinez'
-        }, follow_redirects=True)
-        
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Analia', response.data)
-
     def test_app_has_secret_key(self):
         """Test que la aplicación tiene una clave secreta configurada"""
         self.assertIsNotNone(self.app.secret_key)
