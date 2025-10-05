@@ -1,3 +1,33 @@
+# Q-Sec: Simulador Interactivo del Protocolo de Criptografía Cuántica BB84
+
+**Grupo 12 | Materia: Soporte a Gestión de Datos con Programación Visual**
+
+Integrantes: Lucio Cosentino, Tomas Wardoloff, Santino Cataldi, Gaspar Martinez.
+
+## Sobre el Proyecto
+
+**Q-Sec** es una aplicación web educativa diseñada para desmitificar la criptografía cuántica. A través de una simulación interactiva del protocolo **BB84**, los usuarios pueden explorar cómo las leyes de la física cuántica permiten crear una comunicación segura y detectar a posibles espías.
+
+Este proyecto fue desarrollado como Trabajo Práctico Integrador (TPI), aplicando una arquitectura de software en capas y tecnologías modernas de desarrollo en Python.
+
+Para una documentación técnica detallada del proyecto, por favor consulta el archivo [**PROYECTO.md**](PROYECTO.md).
+
+### Características Principales
+
+*   **Simulación del Protocolo BB84**: Ejecuta una simulación completa paso a paso.
+*   **Detección de Espionaje**: Permite incluir un espía ("Eve") para observar cómo su interferencia afecta la comunicación.
+*   **Gestión de Usuarios**: Sistema de registro y autenticación.
+*   **Historial de Sesiones**: Guarda y permite visualizar los resultados de simulaciones anteriores.
+
+### Stack Tecnológico
+
+*   **Capa de Presentación**: Flask
+*   **Capa de Negocio**: IBM Qiskit, Pytest
+*   **Capa de Datos**: SQLite, SQLAlchemy
+
+---
+---
+
 # Trabajo Práctico Integrador (TPI)
 
 
@@ -18,7 +48,7 @@ Interfaz de usuario:
 
 En este documento se describe el enunciado y pasos a seguir para TPI.
 
-Pasos a Seguir:
+## Pasos a Seguir:
 
 - [ ] Realizar un Fork del [repositorio base](https://github.com/frro-soporte/TPI). Agregar como colaboradores a los profesores y los miembros del equipo.
 - [ ] Se debe crear un "**Tag**" **semanal** etiquetando a los profesores indicando los cambios hechos en el sistema.
@@ -27,7 +57,7 @@ Pasos a Seguir:
     - [ ] [Checklist de Capas](checklist_capas.md)
     - [ ] [Checklist General](checklist_general.md)
 
-# Entrega al finalizar 
+## Entrega al finalizar 
 
 Impresion por duplicado con caratula con las participantes del grupo . 
 Tiene conteneer el Modelo del Dominio del Sistema , las Reglas Negocio del Sistema  , Caso de Uso Principal , Link al Git Hub que tiene los programas del proyecto.
@@ -48,11 +78,7 @@ Debe contener los siguientes puntos .
 - [ ] Documentación de Librerías 
 - [ ] Link Código fuente
 
-
-
-
-
-# Puntos de Control de Avance 
+## Puntos de Control de Avance 
 
 - Mayo 	                Narrativa 
 - Agosto 		Abstract. Casos de uso a implementar. 
@@ -61,7 +87,7 @@ Debe contener los siguientes puntos .
 - Noviembre 	Sistema cumple Requisitos 
 
 
-# Ejemplos de Trabajos presentados en el  2022
+## Ejemplos de Trabajos presentados en el  2022
 
 Utilizando la biblioteca de Python ‘BeautifulSoup’ se realiza scraping de la página de
 'Argenprop' (sitio de alquiler y venta de propiedades) para obtener datos de interés.
@@ -83,8 +109,3 @@ https://github.com/ginoagostinelli/TPI
 
 Sistema para un Estacionamiento situado en el centro de la ciudad de Rosario
 https://github.com/juanicampora/FRRO_SOPORTE_TPI
-
-
-
-
-
