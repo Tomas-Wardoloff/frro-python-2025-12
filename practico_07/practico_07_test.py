@@ -40,7 +40,7 @@ class TestFlaskApp(unittest.TestCase):
             'nombre': 'Juan',
             'apellido': 'Perez'
         })
-        
+
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Juan', response.data)
@@ -59,7 +59,7 @@ class TestFlaskApp(unittest.TestCase):
             'nombre': 'Maria',
             'apellido': 'Garcia'
         }, follow_redirects=True)
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Maria', response.data)
         self.assertIn(b'Garcia', response.data)

@@ -1,8 +1,7 @@
-
-
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
-# ... resto de tus imports de los otros prácticos...
+from practico_06.capa_negocio import NegocioSocio, DniRepetido, LongitudInvalida, MaximoAlcanzado
+from practico_05.ejercicio_01 import Socio
 
 # --- !! SOLUCIÓN DEFINITIVA PARA RUTAS RELATIVAS !! ---
 # Este bloque asegura que el directorio de trabajo (CWD) sea siempre la raíz del proyecto,
@@ -20,16 +19,10 @@ os.chdir(project_root)
 # (Opcional) Imprimir un mensaje para verificar que el cambio se hizo correctamente
 print(f"Directorio de trabajo cambiado a: {os.getcwd()}")
 
-# app.py
-
-from flask import Flask, render_template, request, redirect, url_for, flash
-from practico_06.capa_negocio import NegocioSocio, DniRepetido, LongitudInvalida, MaximoAlcanzado
-from practico_05.ejercicio_01 import Socio
-
 # --- Configuración de la Aplicación Flask ---
 app = Flask(__name__)
 # Se necesita una clave secreta para poder usar los mensajes 'flash'
-app.secret_key = 'una_clave_muy_secreta' 
+app.secret_key = 'una_clave_muy_secreta'
 
 # --- Instancia de la Capa de Negocio ---
 # Creamos una única instancia que usará toda la aplicación
@@ -37,6 +30,7 @@ negocio = NegocioSocio()
 
 
 # --- RUTAS DE LA APLICACIÓN ---
+
 
 @app.route('/')
 def index():
@@ -50,6 +44,7 @@ def index():
         flash(f"Error al cargar los socios: {e}", "danger")
         return render_template('index.html', socios=[])
 
+
 @app.route('/alta', methods=['GET', 'POST'])
 def alta_socio():
     """Página para dar de alta un nuevo socio."""
@@ -58,10 +53,10 @@ def alta_socio():
         nombre = request.form['nombre']
         apellido = request.form['apellido']
         dni = request.form['dni']
-        
+
         # Creamos el objeto socio (sin id, la BD se lo asignará)
         nuevo_socio = Socio(id=None, nombre=nombre, apellido=apellido, dni=dni)
-        
+
         try:
             # Intentamos darlo de alta usando la capa de negocio
             negocio.alta(nuevo_socio)
@@ -73,9 +68,10 @@ def alta_socio():
             flash(f'Error al dar de alta el socio: {e}', 'danger')
             # Volvemos a mostrar el formulario, pero con los datos que ya había escrito
             return render_template('form_socio.html', titulo='Alta de Socio', socio=nuevo_socio)
-        
+
     # Si el método es GET, simplemente mostramos el formulario de alta vacío
     return render_template('form_socio.html', titulo='Alta de Socio')
+
 
 @app.route('/baja', methods=['POST'])
 def baja_socio():
@@ -89,15 +85,16 @@ def baja_socio():
         flash('Debe seleccionar un socio para dar de baja.', 'warning')
     except Exception as e:
         flash(f'Error al dar de baja el socio: {e}', 'danger')
-        
+
     return redirect(url_for('index'))
+
 
 @app.route('/modificar/<int:id_socio>', methods=['GET', 'POST'])
 def modificar_socio(id_socio):
     """Página para modificar los datos de un socio existente."""
     # Buscamos el socio para tener sus datos
     socio_a_modificar = negocio.buscar(id_socio)
-    
+
     if socio_a_modificar is None:
         flash('Socio no encontrado.', 'danger')
         return redirect(url_for('index'))
@@ -107,10 +104,10 @@ def modificar_socio(id_socio):
         nombre = request.form['nombre']
         apellido = request.form['apellido']
         dni = request.form['dni']
-        
+
         # Creamos el objeto con los datos nuevos y el ID original
         socio_modificado = Socio(id=id_socio, nombre=nombre, apellido=apellido, dni=dni)
-        
+
         try:
             # Intentamos la modificación a través de la capa de negocio
             negocio.modificacion(socio_modificado)
@@ -121,9 +118,10 @@ def modificar_socio(id_socio):
             flash(f'Error al modificar el socio: {e}', 'danger')
             # Volvemos a mostrar el formulario con los datos incorrectos para que los corrija
             return render_template('form_socio.html', titulo='Modificar Socio', socio=socio_modificado)
-    
+
     # Si es GET, mostramos el formulario con los datos actuales del socio
     return render_template('form_socio.html', titulo='Modificar Socio', socio=socio_a_modificar)
+
 
 @app.route('/seleccionar_accion', methods=['POST'])
 def seleccionar_accion():
