@@ -20,6 +20,8 @@ class TestFlaskApp(unittest.TestCase):
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
         self.negocio = NegocioSocio()
+        # Limpiar la base de datos antes de cada test
+        self.negocio.datos.borrar_todos()
 
     def tearDown(self):
         """Limpiar la base de datos después de cada test"""
