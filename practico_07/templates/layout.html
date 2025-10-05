@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Socios</title>
+    <!-- Enlazamos nuestra hoja de estilos CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Gestión de Socios</h1>
+        <hr>
+        
+        <!-- Aquí se mostrarán los mensajes flash (éxito, error, etc.) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- El contenido específico de cada página irá aquí -->
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

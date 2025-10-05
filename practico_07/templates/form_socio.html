@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h2>{{ titulo }}</h2>
+    
+    <!-- El formulario enviará los datos a la URL actual -->
+    <form method="POST">
+        <div class="form-group">
+            <label for="dni">DNI:</label>
+            <!-- El valor se rellena si se pasa un objeto 'socio' (para modificar) -->
+            <input type="text" id="dni" name="dni" value="{{ socio.dni if socio else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="nombre">Nombre:</label>
+            <input type="text" id="nombre" name="nombre" value="{{ socio.nombre if socio else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="apellido">Apellido:</label>
+            <input type="text" id="apellido" name="apellido" value="{{ socio.apellido if socio else '' }}" required>
+        </div>
+        <div class="form-actions">
+            <!-- Botón de guardado/aceptar -->
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <!-- Botón para cancelar y volver a la página principal -->
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+{% endblock %}

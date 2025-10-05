@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <div class="actions">
+        <!-- Botón que lleva a la página de alta -->
+        <a href="{{ url_for('alta_socio') }}" class="btn btn-primary">Alta de Socio</a>
+    </div>
+
+    <!-- El formulario envuelve la tabla para poder seleccionar un socio y aplicar una acción -->
+    <form action="{{ url_for('seleccionar_accion') }}" method="POST">
+        <table class="table-socios">
+            <thead>
+                <tr>
+                    <th></th> <!-- Columna para el selector -->
+                    <th>ID</th>
+                    <th>DNI</th>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Si no hay socios, mostramos un mensaje -->
+                {% if not socios %}
+                    <tr>
+                        <td colspan="5" class="text-center">No hay socios registrados.</td>
+                    </tr>
+                {% endif %}
+                <!-- Recorremos la lista de socios y creamos una fila por cada uno -->
+                {% for socio in socios %}
+                <tr>
+                    <!-- El radio button permite seleccionar un solo socio -->
+                    <td><input type="radio" name="id_socio" value="{{ socio.id }}" required></td>
+                    <td>{{ socio.id }}</td>
+                    <td>{{ socio.dni }}</td>
+                    <td>{{ socio.nombre }}</td>
+                    <td>{{ socio.apellido }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Solo mostramos los botones de baja/modificar si hay socios -->
+        {% if socios %}
+        <div class="actions-table">
+            <button type="submit" name="modificar" class="btn btn-secondary">Modificar Seleccionado</button>
+            <button type="submit" name="baja" class="btn btn-danger" onclick="return confirm('¿Está seguro que desea dar de baja al socio seleccionado?');">Baja Seleccionado</button>
+        </div>
+        {% endif %}
+    </form>
+{% endblock %}
