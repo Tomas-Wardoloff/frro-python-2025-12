@@ -1,0 +1,22 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE / Editor specific
+.vscode/
+.idea/
+
+# SQLite Database
+*.sqlite3
+instance/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
