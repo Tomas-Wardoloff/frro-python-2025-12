@@ -1,0 +1,53 @@
+name: Práctico 07
+
+on:
+  push:
+    branches: "**7**"
+
+  workflow_dispatch:
+
+jobs:
+
+  basic-test:
+    name: Test Básicos
+
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+
+      - name: Install Dependencies
+        run: pip install pytest sqlalchemy flask
+
+      - name: Run Basic Tests
+        run: pytest practico_07/practico_07_test.py
+
+
+  style-test:
+    needs: basic-test
+    name: Verificación de Estilo (Flake8)
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+
+      - name: Install Flake8
+        run: pip install flake8
+
+      - name: Test Style
+        run: flake8 practico_07 --count --max-complexity=10 --max-line-length=130 --ignore=E266,F401,E402 --statistics --show-source
+
+
