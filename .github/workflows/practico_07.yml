@@ -25,8 +25,13 @@ jobs:
       - name: Install Dependencies
         run: pip install pytest sqlalchemy flask
 
+      - name: List Files (Debug)
+        run: |
+          ls -la
+          ls -la practico_07/
+
       - name: Run Basic Tests
-        run: pytest practico_07/practico_07_test.py
+        run: pytest practico_07/practico_07_test.py -v
 
 
   style-test:
