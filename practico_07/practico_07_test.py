@@ -34,9 +34,12 @@ class TestFlaskApp(unittest.TestCase):
 
     def test_index_shows_socios(self):
         """Test que la página principal muestra los socios"""
-        # Agregar un socio de prueba
-        socio = Socio(dni=12345678, nombre='Juan', apellido='Perez')
-        self.negocio.alta(socio)
+        # Agregar un socio de prueba usando la ruta de alta
+        self.client.post('/alta', data={
+            'dni': '12345678',
+            'nombre': 'Juan',
+            'apellido': 'Perez'
+        })
         
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
@@ -63,11 +66,14 @@ class TestFlaskApp(unittest.TestCase):
 
     def test_modificar_route_get(self):
         """Test que la ruta de modificación muestra el formulario con datos"""
-        # Crear un socio primero
-        socio = Socio(dni=11111111, nombre='Pedro', apellido='Lopez')
-        self.negocio.alta(socio)
+        # Crear un socio primero usando la ruta de alta
+        self.client.post('/alta', data={
+            'dni': '11111111',
+            'nombre': 'Pedro',
+            'apellido': 'Lopez'
+        })
         
-        # Buscar el socio para obtener su ID
+        # Buscar el socio para obtener su ID usando la capa de negocio
         todos = self.negocio.todos()
         socio_id = todos[0].id
         
@@ -78,9 +84,12 @@ class TestFlaskApp(unittest.TestCase):
 
     def test_modificar_route_post(self):
         """Test que se puede modificar un socio mediante POST"""
-        # Crear un socio primero
-        socio = Socio(dni=22222222, nombre='Ana', apellido='Martinez')
-        self.negocio.alta(socio)
+        # Crear un socio primero usando la ruta de alta
+        self.client.post('/alta', data={
+            'dni': '22222222',
+            'nombre': 'Ana',
+            'apellido': 'Martinez'
+        })
         
         # Buscar el socio para obtener su ID
         todos = self.negocio.todos()
