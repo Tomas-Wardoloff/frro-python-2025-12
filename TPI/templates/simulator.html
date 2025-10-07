@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Simulador{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="mb-4">
+            <i class="bi bi-cpu"></i> Simulador del Protocolo BB84
+        </h2>
+        
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Configuración de la Simulación</h5>
+                <p class="card-text text-muted">
+                    Configura los parámetros de tu simulación del protocolo de distribución cuántica de claves BB84.
+                </p>
+                
+                <form method="POST" action="{{ url_for('simulator') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.key_length.label(class="form-label") }}
+                        {{ form.key_length(class="form-control" + (" is-invalid" if form.key_length.errors else "")) }}
+                        {% if form.key_length.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.key_length.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Número de qubits que Alice enviará a Bob (entre 10 y 1000)
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.has_eve(class="form-check-input") }}
+                            {{ form.has_eve.label(class="form-check-label") }}
+                        </div>
+                        <div class="form-text">
+                            Si está marcado, Eve interceptará y medirá los qubits, introduciendo errores detectables
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Información sobre BB84 -->
+        <div class="accordion" id="infoAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                        <i class="bi bi-info-circle me-2"></i> ¿Cómo funciona el protocolo BB84?
+                    </button>
+                </h2>
+                <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#infoAccordion">
+                    <div class="accordion-body">
+                        <ol class="mb-0">
+                            <li><strong>Alice genera bits y bases aleatorias</strong> y codifica cada bit en un qubit.</li>
+                            <li><strong>Alice envía los qubits</strong> a Bob a través del canal cuántico.</li>
+                            <li>Si hay espía, <strong>Eve intercepta, mide y reenvía</strong> los qubits (introduciendo errores).</li>
+                            <li><strong>Bob recibe y mide</strong> los qubits con bases aleatorias propias.</li>
+                            <li><strong>Alice y Bob comparan públicamente sus bases</strong> y descartan mediciones con bases diferentes.</li>
+                            <li><strong>Calculan la tasa de error</strong> (QBER) para detectar espionaje.</li>
+                            <li>Si QBER < umbral: <span class="badge bg-success">Clave segura</span>, si no: <span class="badge bg-danger">Comprometida</span></li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
