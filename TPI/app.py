@@ -12,14 +12,19 @@ load_dotenv()
 
 # Importar la base de datos desde la capa de datos
 from datos import db
-from datos.models import User
+# Importar TODOS los modelos para que SQLAlchemy los registre
+from datos.models import User, SimulationSession
 
 # Crear la aplicación Flask
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Configuración
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///qsec.db')
+
+# Usar ruta absoluta para la base de datos
+basedir = os.path.abspath(os.path.dirname(__file__))
+db_path = os.path.join(basedir, 'qsec.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f'sqlite:///{db_path}')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Inicializar la base de datos

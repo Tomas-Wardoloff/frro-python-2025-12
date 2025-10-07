@@ -18,14 +18,9 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(128), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     
     # Relación con sesiones de simulación
     sessions = db.relationship('SimulationSession', backref='user', lazy=True, cascade='all, delete-orphan')
-
-    def __init__(self, username, password):
-        self.username = username
-        self.set_password(password)
 
     def __repr__(self):
         return f"<User {self.username}>"

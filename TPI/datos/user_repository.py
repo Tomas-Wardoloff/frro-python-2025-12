@@ -22,7 +22,10 @@ def create_user(username, password):
         return None
     
     # Crear nuevo usuario
-    new_user = User(username=username, password=password)
+    new_user = User()
+    new_user.username = username
+    new_user.set_password(password)
+    
     db.session.add(new_user)
     db.session.commit()
     return new_user
