@@ -54,12 +54,9 @@ def get_user_statistics(user_id):
     }
 
 
-# TODO: Implementar la simulación del protocolo BB84
-# Esta función será desarrollada en la siguiente fase
 def run_bb84_simulation(user_id, key_length, has_eve):
     """
-    Ejecuta la simulación completa del protocolo BB84
-    Esta es la función principal que implementaremos en la siguiente fase
+    Ejecuta la simulación completa del protocolo BB84 con Qiskit
     
     Args:
         user_id (int): ID del usuario que ejecuta la simulación
@@ -69,9 +66,6 @@ def run_bb84_simulation(user_id, key_length, has_eve):
     Returns:
         dict: Resultado de la simulación
     """
-    # Por ahora, retornamos un resultado simulado
-    # TODO: Implementar la lógica real con Qiskit
-    
     # Validaciones de negocio
     if key_length < 10:
         return {
@@ -85,23 +79,41 @@ def run_bb84_simulation(user_id, key_length, has_eve):
             'message': 'La longitud de la clave no puede exceder 1000 bits'
         }
     
-    # Simulación placeholder
-    result = 'compromised' if has_eve else 'secure'
-    final_key = '101010' if not has_eve else None
-    error_rate = 0.25 if has_eve else 0.02
+    try:
+        # Importar la simulación BB84
+        from business.bb84_simulation import simulate_bb84
+        
+        # Ejecutar la simulación cuántica
+        sim_result = simulate_bb84(key_length, has_eve)
+        
+        if not sim_result['success']:
+            return sim_result
+        
+        # Guardar en la base de datos
+        session = session_repository.create_session(
+            user_id=user_id,
+            key_length=key_length,
+            has_eve=has_eve,
+            result=sim_result['result'],
+            final_key=sim_result.get('final_key'),
+            error_rate=sim_result.get('error_rate')
+        )
+        
+        return {
+            'success': True,
+            'message': sim_result['message'],
+            'session': session.to_dict(),
+            'simulation_details': {
+                'key_length_initial': sim_result.get('key_length_initial'),
+                'key_length_after_sifting': sim_result.get('key_length_after_sifting'),
+                'key_length_final': sim_result.get('key_length_final'),
+                'matching_bases': sim_result.get('matching_bases'),
+                'error_rate': sim_result.get('error_rate')
+            }
+        }
     
-    # Guardar en la base de datos
-    session = session_repository.create_session(
-        user_id=user_id,
-        key_length=key_length,
-        has_eve=has_eve,
-        result=result,
-        final_key=final_key,
-        error_rate=error_rate
-    )
-    
-    return {
-        'success': True,
-        'message': 'Simulación completada',
-        'session': session.to_dict()
-    }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error en la simulación: {str(e)}'
+        }
