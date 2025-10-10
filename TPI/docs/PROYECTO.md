@@ -12,8 +12,7 @@ En un mundo cada vez más digital, la seguridad en las comunicaciones es fundame
 
 ## Modelo de Dominio
 
-*AQUÍ SE DEBE INSERTAR LA IMAGEN DEL MODELO DE DOMINIO (DIAGRAMA DE CLASES O ENTIDAD-RELACIÓN)*
-
+![Diagrama de Modelo de Dominio](MD.png)
 El modelo de dominio se centra en dos entidades principales:
 
 *   **Usuario**: Representa a la persona que utiliza el simulador. Almacena información de autenticación como el nombre de usuario y la contraseña hasheada.
@@ -21,7 +20,7 @@ El modelo de dominio se centra en dos entidades principales:
 
 ## Bosquejo de Arquitectura
 
-*AQUÍ SE DEBE INSERTAR LA IMAGEN DEL DIAGRAMA DE ARQUITECTURA*
+![Diagrama de Arquitectura](diagrams/architecture.png)
 
 El sistema está diseñado bajo una estricta **arquitectura de 3 capas** para separar responsabilidades y mejorar la mantenibilidad:
 
