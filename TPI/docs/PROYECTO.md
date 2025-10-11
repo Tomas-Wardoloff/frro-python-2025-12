@@ -8,7 +8,7 @@ En un mundo cada vez más digital, la seguridad en las comunicaciones es fundame
 
 ## Modelo de Dominio
 
-![Diagrama de Modelo de Dominio](./MD.png)
+![Diagrama de Modelo de Dominio](./diagrams/MD.png)
 El modelo de dominio se centra en dos entidades principales:
 
 *   **Usuario**: Representa a la persona que utiliza el simulador. Almacena información de autenticación como el nombre de usuario y la contraseña hasheada.
