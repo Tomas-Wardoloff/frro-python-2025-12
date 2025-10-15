@@ -73,6 +73,7 @@ class TestSimulationSessionModel:
         """Test: crear una sesión de simulación"""
         with app.app_context():
             user = User(username='testuser')
+            user.set_password('pass123')
             db.session.add(user)
             db.session.commit()
             
@@ -92,7 +93,8 @@ class TestSimulationSessionModel:
     def test_session_with_eve(self, client):
         """Test: sesión con espía (Eve)"""
         with app.app_context():
-            user = User(username='testuser')
+            user = User(username='testuser2')
+            user.set_password('pass123')
             db.session.add(user)
             db.session.commit()
             
@@ -111,7 +113,8 @@ class TestSimulationSessionModel:
     def test_session_timestamp(self, client):
         """Test: timestamp de la sesión"""
         with app.app_context():
-            user = User(username='testuser')
+            user = User(username='testuser3')
+            user.set_password('pass123')
             db.session.add(user)
             db.session.commit()
             
@@ -131,7 +134,8 @@ class TestSimulationSessionModel:
     def test_session_repr(self, client):
         """Test: representación de la sesión"""
         with app.app_context():
-            user = User(username='testuser')
+            user = User(username='testuser4')
+            user.set_password('pass123')
             db.session.add(user)
             db.session.commit()
             

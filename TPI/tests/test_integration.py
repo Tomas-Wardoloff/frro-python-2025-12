@@ -62,6 +62,7 @@ class TestUserFlow:
         with app.app_context():
             # Crear un usuario
             user = User(username='simulator')
+            user.set_password('password123')
             db.session.add(user)
             db.session.commit()
             
@@ -87,6 +88,7 @@ class TestUserFlow:
         with app.app_context():
             # Crear un usuario
             user = User(username='historian')
+            user.set_password('password123')
             db.session.add(user)
             db.session.commit()
             
@@ -114,6 +116,7 @@ class TestBB84Integration:
         with app.app_context():
             # Crear usuario
             user = User(username='bb84user')
+            user.set_password('password123')
             db.session.add(user)
             db.session.commit()
             
