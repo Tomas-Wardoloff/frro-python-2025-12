@@ -1,0 +1,118 @@
+{% extends "base.html" %} {% block title %}Inicio{% endblock %} {% block content
+%}
+<div class="row">
+  <div class="col-lg-8 mx-auto text-center">
+    <h1 class="display-4 mb-4">
+      <i class="bi bi-shield-lock text-primary"></i> Bienvenido a Q-Sec
+    </h1>
+    <p class="lead text-muted mb-4">
+      Simulador Interactivo del Protocolo de Criptografía Cuántica BB84
+    </p>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title">¿Qué es BB84?</h5>
+        <p class="card-text text-start">
+          El protocolo BB84 es un método de
+          <strong>distribución cuántica de claves</strong>
+          que permite a dos partes (Alice y Bob) compartir una clave secreta de
+          forma segura, detectando cualquier intento de espionaje gracias a las
+          leyes de la mecánica cuántica.
+        </p>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <i class="bi bi-gear-fill text-primary fs-1"></i>
+            <h5 class="card-title mt-2">Configura</h5>
+            <p class="card-text">
+              Define la longitud de la clave y si deseas incluir un espía
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <i class="bi bi-cpu text-success fs-1"></i>
+            <h5 class="card-title mt-2">Simula</h5>
+            <p class="card-text">Ejecuta la simulación cuántica con Qiskit</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <i class="bi bi-graph-up text-info fs-1"></i>
+            <h5 class="card-title mt-2">Analiza</h5>
+            <p class="card-text">
+              Visualiza los resultados y detecta espionaje
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <div class="d-grid gap-2 d-md-block">
+      <a href="{{ url_for('simulator') }}" class="btn btn-primary btn-lg">
+        <i class="bi bi-play-circle"></i> Iniciar Simulación
+      </a>
+      <a
+        href="{{ url_for('dashboard') }}"
+        class="btn btn-outline-primary btn-lg"
+      >
+        <i class="bi bi-speedometer2"></i> Mi Dashboard
+      </a>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+      <i class="bi bi-info-circle"></i>
+      Para usar el simulador, debes
+      <a href="{{ url_for('register') }}" class="alert-link">registrarte</a> o
+      <a href="{{ url_for('login') }}" class="alert-link">iniciar sesión</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Sección informativa adicional -->
+<div class="row mt-5">
+  <div class="col-lg-10 mx-auto">
+    <hr />
+    <h3 class="text-center mb-4">Características del Simulador</h3>
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">
+              <i class="bi bi-lock-fill text-success"></i> Seguridad Cuántica
+            </h5>
+            <p class="card-text">
+              Simula la transmisión de qubits y la detección automática de
+              espionaje mediante el cálculo de la tasa de error cuántico (QBER).
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">
+              <i class="bi bi-bookmark-star-fill text-warning"></i> Historial
+              Completo
+            </h5>
+            <p class="card-text">
+              Guarda todas tus simulaciones para poder revisarlas más tarde y
+              analizar diferentes escenarios de criptografía cuántica.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
