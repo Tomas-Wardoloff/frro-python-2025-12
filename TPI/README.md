@@ -1,32 +1,3 @@
-# Q-Sec: Simulador Interactivo del Protocolo de Criptografía Cuántica BB84
-
-**Grupo 12 | Materia: Soporte a Gestión de Datos con Programación Visual**
-
-Integrantes: Lucio Cosentino, Tomas Wardoloff, Santino Cataldi, Gaspar Martinez.
-
-## Sobre el Proyecto
-
-**Q-Sec** es una aplicación web educativa diseñada para desmitificar la criptografía cuántica. A través de una simulación interactiva del protocolo **BB84**, los usuarios pueden explorar cómo las leyes de la física cuántica permiten crear una comunicación segura y detectar a posibles espías.
-
-Este proyecto fue desarrollado como Trabajo Práctico Integrador (TPI), aplicando una arquitectura de software en capas y tecnologías modernas de desarrollo en Python.
-
-Para una documentación técnica detallada del proyecto, por favor consulta el archivo [**PROYECTO.md**](PROYECTO.md).
-
-### Características Principales
-
-*   **Simulación del Protocolo BB84**: Ejecuta una simulación completa paso a paso.
-*   **Detección de Espionaje**: Permite incluir un espía ("Eve") para observar cómo su interferencia afecta la comunicación.
-*   **Gestión de Usuarios**: Sistema de registro y autenticación.
-*   **Historial de Sesiones**: Guarda y permite visualizar los resultados de simulaciones anteriores.
-
-### Stack Tecnológico
-
-*   **Capa de Presentación**: Flask
-*   **Capa de Negocio**: IBM Qiskit, Pytest
-*   **Capa de Datos**: SQLite, SQLAlchemy
-
----
----
 
 # Trabajo Práctico Integrador (TPI)
 
