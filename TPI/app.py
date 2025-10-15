@@ -16,7 +16,7 @@ from datos import db
 from datos.models import User, SimulationSession
 
 # Crear la aplicación Flask
-app = Flask(__name__, template_folder='templates', static_folder='static')
+app = Flask(__name__, template_folder='views/templates', static_folder='views/static')
 
 # Configuración
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
