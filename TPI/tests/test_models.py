@@ -1,0 +1,150 @@
+"""
+Tests para los modelos de la base de datos
+"""
+import pytest
+from app import app, db
+from app.models import User, SimulationSession
+from datetime import datetime
+
+
+@pytest.fixture
+def client():
+    """Crea un cliente de prueba con base de datos temporal"""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    
+    with app.app_context():
+        db.create_all()
+        yield app.test_client()
+        db.session.remove()
+        db.drop_all()
+
+
+class TestUserModel:
+    """Tests para el modelo User"""
+    
+    def test_user_creation(self, client):
+        """Test: crear un usuario"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            db.session.add(user)
+            db.session.commit()
+            
+            assert user.id is not None
+            assert user.username == 'testuser'
+    
+    def test_user_password_hashing(self, client):
+        """Test: la contraseña debe estar hasheada"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            
+            # La contraseña no debe ser igual al hash
+            assert user.password_hash != 'testpass123'
+    
+    def test_user_check_password(self, client):
+        """Test: verificar contraseña"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            
+            assert user.check_password('testpass123') is True
+            assert user.check_password('wrongpass') is False
+    
+    def test_user_get_by_username(self, client):
+        """Test: obtener usuario por nombre"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            db.session.add(user)
+            db.session.commit()
+            
+            found_user = User.get_by_username('testuser')
+            assert found_user is not None
+            assert found_user.username == 'testuser'
+    
+    def test_user_repr(self, client):
+        """Test: representación del usuario"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            
+            assert 'testuser' in repr(user)
+
+
+class TestSimulationSessionModel:
+    """Tests para el modelo SimulationSession"""
+    
+    def test_session_creation(self, client):
+        """Test: crear una sesión de simulación"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            db.session.add(user)
+            db.session.commit()
+            
+            session = SimulationSession(
+                key_length=256,
+                has_eve=False,
+                result='success',
+                user_id=user.id
+            )
+            db.session.add(session)
+            db.session.commit()
+            
+            assert session.id is not None
+            assert session.key_length == 256
+            assert session.has_eve is False
+    
+    def test_session_with_eve(self, client):
+        """Test: sesión con espía (Eve)"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            db.session.add(user)
+            db.session.commit()
+            
+            session = SimulationSession(
+                key_length=256,
+                has_eve=True,
+                result='detected',
+                user_id=user.id
+            )
+            db.session.add(session)
+            db.session.commit()
+            
+            assert session.has_eve is True
+            assert session.result == 'detected'
+    
+    def test_session_timestamp(self, client):
+        """Test: timestamp de la sesión"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            db.session.add(user)
+            db.session.commit()
+            
+            session = SimulationSession(
+                key_length=256,
+                has_eve=False,
+                result='success',
+                user_id=user.id
+            )
+            db.session.add(session)
+            db.session.commit()
+            
+            # Verificar que el timestamp se asignó automáticamente
+            assert session.timestamp is not None
+            assert isinstance(session.timestamp, datetime)
+    
+    def test_session_repr(self, client):
+        """Test: representación de la sesión"""
+        with app.app_context():
+            user = User(username='testuser', password='testpass123')
+            db.session.add(user)
+            db.session.commit()
+            
+            session = SimulationSession(
+                key_length=256,
+                has_eve=False,
+                result='success',
+                user_id=user.id
+            )
+            db.session.add(session)
+            db.session.commit()
+            
+            assert 'Session' in repr(session)
+            assert str(user.id) in repr(session)
