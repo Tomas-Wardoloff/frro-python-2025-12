@@ -20,3 +20,6 @@ instance/
 build/
 dist/
 *.egg-info/
+
+# Data Base
+*.db
