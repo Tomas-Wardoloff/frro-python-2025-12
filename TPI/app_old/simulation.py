@@ -2,6 +2,7 @@
 
 import random
 
+
 def generate_alice_sequence(key_length: int):
     """
     Genera la secuencia inicial de Alice.
@@ -28,6 +29,7 @@ def generate_alice_sequence(key_length: int):
         alice_bases.append(base)
 
     return alice_bits, alice_bases
+
 
 # Este bloque solo se ejecuta si corremos el archivo directamente
 # (ej: python app/simulation.py) y no cuando se importa.

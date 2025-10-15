@@ -22,7 +22,7 @@ def register():
 
         user = User.get_by_username(username)
         if user is not None:
-            error = f"El nombre de usuario {username} ya está en uso."
+            flash(f"El nombre de usuario {username} ya está en uso.", "error")
         else:
             new_user = User(username=username, password=password)
             new_user.save()
