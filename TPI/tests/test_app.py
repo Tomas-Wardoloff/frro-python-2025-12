@@ -2,9 +2,15 @@
 Tests para la aplicación Flask
 """
 import pytest
+import sys
+import os
+
+# Agregar el directorio TPI al path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app import app, db
-from app.models import User
-from app.forms import LoginForm, RegisterForm
+from datos.models import User
+from views.forms import LoginForm, RegisterForm
 
 
 @pytest.fixture

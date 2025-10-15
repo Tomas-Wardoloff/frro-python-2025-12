@@ -18,6 +18,7 @@ Pygments==2.19.2
 pytest==8.4.2
 python-dotenv==1.1.1
 qiskit==2.2.0
+qiskit-aer==0.15.1
 rustworkx==0.17.1
 scipy==1.16.2
 SQLAlchemy==2.0.43

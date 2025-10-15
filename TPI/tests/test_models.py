@@ -2,8 +2,14 @@
 Tests para los modelos de la base de datos
 """
 import pytest
+import sys
+import os
+
+# Agregar el directorio TPI al path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app import app, db
-from app.models import User, SimulationSession
+from datos.models import User, SimulationSession
 from datetime import datetime
 
 
