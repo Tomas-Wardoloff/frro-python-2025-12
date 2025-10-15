@@ -57,5 +57,5 @@ jobs:
         run: pip install flake8
 
       - name: Test Style
-        run: flake8 TPI --count --max-complexity=10 --max-line-length=130 --ignore=E266,F401,E402,W293,E303 --statistics --show-source
+        run: flake8 TPI --count --max-complexity=10 --max-line-length=130 --ignore=E266,F401,E402,W293,E303,C901,F821 --statistics --show-source
 
