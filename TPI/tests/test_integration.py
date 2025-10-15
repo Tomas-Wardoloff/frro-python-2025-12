@@ -32,7 +32,8 @@ class TestUserFlow:
         """Test: un usuario puede registrarse"""
         with app.app_context():
             # Crear un usuario
-            user = User(username='newuser', password='password123')
+            user = User(username='newuser')
+            user.set_password('password123')
             db.session.add(user)
             db.session.commit()
             
@@ -45,12 +46,13 @@ class TestUserFlow:
         """Test: un usuario puede autenticarse"""
         with app.app_context():
             # Crear un usuario
-            user = User(username='testuser', password='password123')
+            user = User(username='testuser')
+            user.set_password('password123')
             db.session.add(user)
             db.session.commit()
             
             # Verificar autenticación
-            found_user = User.get_by_username('testuser')
+            found_user = User.query.filter_by(username='testuser').first()
             assert found_user is not None
             assert found_user.check_password('password123')
             assert not found_user.check_password('wrongpassword')
@@ -59,7 +61,7 @@ class TestUserFlow:
         """Test: un usuario puede simular"""
         with app.app_context():
             # Crear un usuario
-            user = User(username='simulator', password='password123')
+            user = User(username='simulator')
             db.session.add(user)
             db.session.commit()
             
@@ -67,7 +69,7 @@ class TestUserFlow:
             session = SimulationSession(
                 key_length=256,
                 has_eve=False,
-                result='success',
+                result='secure',
                 final_key='01101010101010101010',
                 user_id=user.id
             )
@@ -78,13 +80,13 @@ class TestUserFlow:
             found_session = SimulationSession.query.filter_by(user_id=user.id).first()
             assert found_session is not None
             assert found_session.key_length == 256
-            assert found_session.result == 'success'
+            assert found_session.result == 'secure'
     
     def test_user_can_view_history(self, client):
         """Test: un usuario puede ver su historial"""
         with app.app_context():
             # Crear un usuario
-            user = User(username='historian', password='password123')
+            user = User(username='historian')
             db.session.add(user)
             db.session.commit()
             
@@ -93,7 +95,7 @@ class TestUserFlow:
                 session = SimulationSession(
                     key_length=256 + i,
                     has_eve=(i % 2 == 0),
-                    result='success' if i % 2 == 0 else 'detected',
+                    result='secure' if i % 2 == 0 else 'compromised',
                     user_id=user.id
                 )
                 db.session.add(session)
@@ -111,7 +113,7 @@ class TestBB84Integration:
         """Test: resultados de BB84 se registran"""
         with app.app_context():
             # Crear usuario
-            user = User(username='bb84user', password='password123')
+            user = User(username='bb84user')
             db.session.add(user)
             db.session.commit()
             
@@ -119,7 +121,7 @@ class TestBB84Integration:
             session = SimulationSession(
                 key_length=128,
                 has_eve=True,
-                result='detected',
+                result='compromised',
                 final_key='10101010',
                 user_id=user.id
             )
@@ -132,5 +134,5 @@ class TestBB84Integration:
                 has_eve=True
             ).first()
             assert saved_session is not None
-            assert saved_session.result == 'detected'
+            assert saved_session.result == 'compromised'
             assert saved_session.final_key == '10101010'

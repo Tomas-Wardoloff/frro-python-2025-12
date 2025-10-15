@@ -41,24 +41,26 @@ class TestAppBasics:
 class TestForms:
     """Tests para los formularios"""
     
-    def test_login_form_fields(self):
+    def test_login_form_fields(self, client):
         """Test: LoginForm tiene los campos requeridos"""
-        form = LoginForm()
-        
-        # Verificar que tiene los campos
-        assert hasattr(form, 'username')
-        assert hasattr(form, 'password')
-        assert hasattr(form, 'remember_me')
-        assert hasattr(form, 'submit')
+        with app.app_context():
+            form = LoginForm()
+            
+            # Verificar que tiene los campos
+            assert hasattr(form, 'username')
+            assert hasattr(form, 'password')
+            assert hasattr(form, 'remember_me')
+            assert hasattr(form, 'submit')
     
-    def test_register_form_fields(self):
+    def test_register_form_fields(self, client):
         """Test: RegisterForm tiene los campos requeridos"""
-        form = RegisterForm()
-        
-        # Verificar que tiene los campos
-        assert hasattr(form, 'username')
-        assert hasattr(form, 'password')
-        assert hasattr(form, 'submit')
+        with app.app_context():
+            form = RegisterForm()
+            
+            # Verificar que tiene los campos
+            assert hasattr(form, 'username')
+            assert hasattr(form, 'password')
+            assert hasattr(form, 'submit')
 
 
 class TestRoutes:
