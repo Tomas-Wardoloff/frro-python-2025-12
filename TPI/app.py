@@ -6,14 +6,17 @@ import os
 from flask import Flask
 from flask_login import LoginManager
 from dotenv import load_dotenv
-
-# Cargar variables de entorno
-load_dotenv()
-
+from views.routes import configure_routes
 # Importar la base de datos desde la capa de datos
 from datos import db
 # Importar TODOS los modelos para que SQLAlchemy los registre
 from datos.models import User, SimulationSession
+    
+# Cargar variables de entorno
+load_dotenv()
+
+
+
 
 # Crear la aplicación Flask
 app = Flask(__name__, template_folder='views/templates', static_folder='views/static')
@@ -45,7 +48,7 @@ def load_user(user_id):
 
 
 # Configurar las rutas (capa de presentación)
-from views.routes import configure_routes
+
 configure_routes(app)
 
 

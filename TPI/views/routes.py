@@ -3,7 +3,7 @@ Rutas de la aplicación (Capa de Presentación)
 Esta capa NO accede directamente a la base de datos
 Solo usa la capa de negocio (business)
 """
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 
 from views.forms import RegisterForm, LoginForm, SimulationForm
@@ -106,18 +106,9 @@ def configure_routes(app):
             key_length = form.key_length.data
             has_eve = form.has_eve.data
             
-            # Ejecutar simulación (capa de negocio)
-            result = simulation_controller.run_bb84_simulation(
-                user_id=current_user.id,
-                key_length=key_length,
-                has_eve=has_eve
-            )
-            
-            if result['success']:
-                flash('Simulación ejecutada exitosamente', 'success')
-                return redirect(url_for('simulation_result', session_id=result['session']['id']))
-            else:
-                flash(result['message'], 'danger')
+            # Redirigir a la animación con parámetros
+            # Convertir bool a int para la URL (True -> 1, False -> 0)
+            return redirect(url_for('animation', key_length=key_length, has_eve=int(has_eve)))
         
         return render_template('simulator.html', form=form)
     
@@ -138,3 +129,38 @@ def configure_routes(app):
         """Historial completo de simulaciones del usuario"""
         sessions = simulation_controller.get_user_simulation_history(current_user.id, limit=50)
         return render_template('history.html', sessions=sessions)
+    
+    
+    @app.route('/animation')
+    @login_required
+    def animation():
+        """Página de animación del protocolo BB84"""
+        return render_template('bb84_animation.html')
+    
+    
+    @app.route('/api/run-simulation', methods=['POST'])
+    def run_simulation():
+        """API para ejecutar la simulación BB84"""
+        try:
+            # Verificar si el usuario está autenticado
+            if not current_user.is_authenticated:
+                return jsonify({'success': False, 'message': 'No autorizado'}), 403
+            
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'message': 'Datos inválidos'}), 400
+            
+            key_length = data.get('key_length', 256)
+            has_eve = data.get('has_eve', False)
+            
+            # Ejecutar simulación (capa de negocio)
+            result = simulation_controller.run_bb84_simulation(
+                user_id=current_user.id,
+                key_length=key_length,
+                has_eve=has_eve
+            )
+            
+            return jsonify(result), 200
+        
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500

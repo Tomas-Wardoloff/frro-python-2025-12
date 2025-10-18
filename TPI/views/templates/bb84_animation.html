@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}Simulación BB84 en Progreso{% endblock %}
+
+{% block content %}
+<div class="container-fluid d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="col-12 col-lg-11">
+        <div class="card shadow-lg">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-5">
+                    <i class="bi bi-lightning-fill text-warning"></i> Protocolo BB84 en Acción
+                </h2>
+
+                <!-- Visualización del intercambio de bits -->
+                <div class="mb-5 p-4" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 15px;">
+                    <div class="row align-items-center">
+                        <!-- Alice -->
+                        <div class="col-md-3 text-center">
+                            <h5><i class="bi bi-person-circle"></i> Alice</h5>
+                            <p class="text-muted small">Codifica qubits</p>
+                            <div id="alice-bits-display" class="d-flex flex-wrap gap-2 justify-content-center" style="min-height: 100px;">
+                                <span class="badge bg-secondary">Esperando...</span>
+                            </div>
+                            <small class="text-muted mt-2 d-block">Verde = 1 | Rojo = 0</small>
+                        </div>
+
+                        <!-- Canal de comunicación -->
+                        <div class="col-md-6">
+                            <div style="min-height: 120px; position: relative; border: 2px solid #17a2b8; border-radius: 10px; padding: 20px; background: linear-gradient(90deg, rgba(40,167,69,0.1) 0%, rgba(23,162,184,0.1) 100%);">
+                                <div class="text-center mb-3">
+                                    <small class="text-muted"><strong>Canal Cuántico</strong></small>
+                                </div>
+                                <svg id="transmission-svg" width="100%" height="60" style="display: block; margin: 0 auto; background: white; border-radius: 8px;">
+                                    <!-- Alice en la izquierda -->
+                                    <circle cx="20" cy="30" r="6" fill="#007bff" stroke="none"/>
+                                    <!-- Eve en el medio (si está presente) -->
+                                    <g id="eve-in-channel" style="display: none;">
+                                        <circle cx="245" cy="30" r="8" fill="#ff0000" stroke="none" opacity="0.7"/>
+                                        <circle cx="245" cy="30" r="12" fill="none" stroke="#ff0000" stroke-width="2" opacity="0.5"/>
+                                    </g>
+                                    <!-- Bob en la derecha -->
+                                    <circle cx="470" cy="30" r="6" fill="#007bff" stroke="none"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Bob -->
+                        <div class="col-md-3 text-center">
+                            <h5><i class="bi bi-person-circle"></i> Bob</h5>
+                            <p class="text-muted small">Mide qubits</p>
+                            <div id="bob-bits-display" class="d-flex flex-wrap gap-2 justify-content-center" style="min-height: 100px;">
+                                <span class="badge bg-secondary">Esperando...</span>
+                            </div>
+                            <small class="text-muted mt-2 d-block">Azul = 1 | Amarillo = 0</small>
+                        </div>
+                    </div>
+
+                    <!-- Eve (si está presente) -->
+                    <div id="eve-section" style="display: none; margin-top: 30px; padding-top: 30px; border-top: 3px dashed #ff6b6b;">
+                        <div class="text-center">
+                            <h5 class="text-danger" style="font-weight: bold;"><i class="bi bi-shield-exclamation"></i> EVE INTERCEPTANDO</h5>
+                            <p class="text-danger small">Eve está midiendo en el canal cuántico</p>
+                            <div id="eve-bits-display" class="d-flex flex-wrap gap-2 justify-content-center mt-3">
+                                <span class="badge bg-secondary">Esperando...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estados de la animación -->
+                <div class="row">
+                    <!-- Paso 1 -->
+                    <div class="col-md-6 mb-3">
+                        <div class="animation-step" id="step1">
+                            <h6><i class="bi bi-1-circle-fill"></i> Generación de Bits</h6>
+                            <div class="progress mt-2">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" id="progress1" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Paso 2 -->
+                    <div class="col-md-6 mb-3">
+                        <div class="animation-step" id="step2" style="opacity: 0.5;">
+                            <h6><i class="bi bi-2-circle-fill"></i> Transmisión</h6>
+                            <p class="mb-0 small text-muted">Alice envía qubits a Bob...</p>
+                        </div>
+                    </div>
+
+                    <!-- Paso 3 -->
+                    <div class="col-md-6 mb-3">
+                        <div class="animation-step" id="step3" style="opacity: 0.5;">
+                            <h6><i class="bi bi-3-circle-fill"></i> Bob Mide</h6>
+                            <p class="mb-0 small text-muted">Midiendo con bases aleatorias...</p>
+                        </div>
+                    </div>
+
+                    <!-- Paso 4 -->
+                    <div class="col-md-6 mb-3">
+                        <div class="animation-step" id="step4" style="opacity: 0.5;">
+                            <h6><i class="bi bi-4-circle-fill"></i> Bases Coinciden</h6>
+                            <p id="matching-text" class="mb-0 small text-muted">Esperando...</p>
+                        </div>
+                    </div>
+
+                    <!-- Paso 5 -->
+                    <div class="col-md-6 mb-3">
+                        <div class="animation-step" id="step5" style="opacity: 0.5;">
+                            <h6><i class="bi bi-5-circle-fill"></i> Clave Final</h6>
+                            <div id="final-key" class="alert alert-success mt-2" style="display: none; margin: 0; padding: 8px; font-size: 0.85rem;">
+                                <code id="final-key-text" style="word-break: break-all;"></code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Paso 6 - QBER -->
+                    <div class="col-md-6 mb-3">
+                        <div class="animation-step" id="step6" style="opacity: 0.5;">
+                            <h6><i class="bi bi-6-circle-fill"></i> Verificación QBER</h6>
+                            <div id="qber-result" class="alert alert-info mt-2" style="display: none; margin: 0; padding: 8px; font-size: 0.85rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerta de espías (grande y llamativa) -->
+                <div id="spy-alert" class="alert alert-danger alert-dismissible fade show" role="alert" style="display: none; margin-top: 20px; font-size: 1.1rem;">
+                    <i class="bi bi-exclamation-triangle-fill" style="font-size: 2rem;"></i>
+                    <h4 class="alert-heading mt-2">¡INTRUSO DETECTADO!</h4>
+                    <p><strong>Eve ha interceptado la comunicación.</strong></p>
+                    <p id="spy-details" class="mb-0"></p>
+                </div>
+
+                <!-- Estado general -->
+                <div class="text-center mt-5">
+                    <div class="spinner-border text-primary" role="status" id="main-spinner">
+                        <span class="visually-hidden">Procesando...</span>
+                    </div>
+                    <p class="text-muted mt-3" id="status-text">Iniciando simulación...</p>
+                </div>
+                
+                <!-- Botón para ir al dashboard -->
+                <div class="text-center mt-4" id="dashboard-button" style="display: none;">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-speedometer2"></i> Ir al Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Prevenir que se repita la animación si se recarga la página
+let animationStarted = false;
+
+// Verificar si ya se ejecutó la animación
+window.addEventListener('beforeunload', function() {
+    if (animationStarted) {
+        // Redirigir al dashboard si se recarga durante la animación
+        window.location.href = '{{ url_for("dashboard") }}';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    runBB84Animation();
+});
+
+async function runBB84Animation() {
+    // Si ya se inició la animación, ir al dashboard
+    if (animationStarted) {
+        window.location.href = '{{ url_for("dashboard") }}';
+        return;
+    }
+    
+    animationStarted = true;
+    const statusText = document.getElementById('status-text');
+    const mainSpinner = document.getElementById('main-spinner');
+    
+    try {
+        // Obtener parámetros de la URL
+        const params = new URLSearchParams(window.location.search);
+        const keyLength = params.get('key_length') || 256;
+        const hasEveParam = params.get('has_eve') || '0';
+        const hasEve = hasEveParam === '1' || hasEveParam === 'true' || hasEveParam === 'True';
+        
+        console.log('key_length:', keyLength, 'has_eve:', hasEve);
+        
+        // Mostrar Eve en el canal si está habilitada
+        if (hasEve) {
+            const eveInChannel = document.getElementById('eve-in-channel');
+            eveInChannel.style.display = 'block';
+        }
+        
+        statusText.textContent = 'Ejecutando simulación...';
+        
+        // Hacer llamada al backend
+        const response = await fetch('{{ url_for("run_simulation") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                key_length: parseInt(keyLength),
+                has_eve: hasEve
+            })
+        });
+        
+        console.log('Respuesta status:', response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Error ${response.status}: ${errorData.message || response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Datos recibidos:', data);
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Error en la simulación');
+        }
+        
+        // Animar los pasos con datos del backend
+        await animateStep1();
+        await animateStep2(hasEve);
+        await animateStep3();
+        await animateStep4(data);
+        await animateStep5(data);
+        await animateStep6(data);
+        
+        // Mostrar alerta si hay espía detectado
+        if (data.session?.result === 'compromised') {
+            showSpyAlert(data);
+        }
+        
+        // Ocultar spinner
+        mainSpinner.style.display = 'none';
+        
+        // Mostrar botón para ir al dashboard
+        statusText.textContent = 'Simulación completada.';
+        const dashboardButton = document.getElementById('dashboard-button');
+        dashboardButton.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error en simulación:', error);
+        mainSpinner.style.display = 'none';
+        statusText.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-circle"></i> Error: ${error.message}</span>`;
+    }
+}
+
+function showSpyAlert(data) {
+    const spyAlert = document.getElementById('spy-alert');
+    const spyDetails = document.getElementById('spy-details');
+    const details = data.simulation_details || {};
+    const qber = ((details.error_rate || 0) * 100).toFixed(2);
+    
+    spyDetails.innerHTML = `
+        <strong>Tasa de Error Cuántico (QBER): ${qber}%</strong><br>
+        La comunicación ha sido comprometida. Eve ha interceptado y medido los qubits.
+    `;
+    
+    spyAlert.style.display = 'block';
+    spyAlert.classList.add('shake-animation');
+}
+
+async function animateStep1() {
+    const step = document.getElementById('step1');
+    const progressBar = document.getElementById('progress1');
+    const aliceBitsDisplay = document.getElementById('alice-bits-display');
+    
+    step.style.opacity = '1';
+    aliceBitsDisplay.innerHTML = '';
+    
+    // Animar generación de bits aleatorios
+    const displayCount = 16;
+    for (let i = 0; i < displayCount; i++) {
+        await new Promise(resolve => setTimeout(resolve, 60));
+        
+        const bit = Math.floor(Math.random() * 2);
+        const bgColor = bit === 1 ? '#28a745' : '#dc3545'; // Verde para 1, Rojo para 0
+        aliceBitsDisplay.innerHTML += `<span class="bit-square" style="display: inline-block; width: 32px; height: 32px; background: ${bgColor}; border-radius: 6px; line-height: 32px; text-align: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${bit}</span>`;
+        
+        progressBar.style.width = ((i + 1) / displayCount * 100) + '%';
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+}
+
+async function animateStep2(hasEve) {
+    const step = document.getElementById('step2');
+    const eveSection = document.getElementById('eve-section');
+    const eveBitsDisplay = document.getElementById('eve-bits-display');
+    const svg = document.getElementById('transmission-svg');
+    
+    step.style.opacity = '1';
+    
+    // Animar fotones viajando por el canal
+    const numPhotons = 12;
+    const svg_width = svg.clientWidth || 490;
+    
+    for (let i = 0; i < numPhotons; i++) {
+        // Crear círculo para el fotón
+        const photon = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        photon.setAttribute('r', '5');
+        photon.setAttribute('fill', '#28a745'); // Verde para fotón
+        photon.setAttribute('cy', '30');
+        photon.setAttribute('cx', '20');
+        photon.setAttribute('filter', 'drop-shadow(0 0 3px rgba(40, 167, 69, 0.8))');
+        photon.setAttribute('data-intercepted', 'false');
+        
+        svg.appendChild(photon);
+        
+        // Si Eve está habilitada, algunos fotones serán interceptados
+        let intercepted = false;
+        if (hasEve && Math.random() < 0.6) { // 60% de probabilidad de intercepción
+            intercepted = true;
+            photon.setAttribute('data-intercepted', 'true');
+        }
+        
+        // Animar el fotón (velocidad más rápida: 800ms en lugar de 1500ms)
+        await animatePhoton(photon, svg_width, 800, intercepted);
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Solo mostrar Eve si está habilitada
+    if (hasEve) {
+        eveSection.style.display = 'block';
+        
+        // Animar bits de Eve
+        const displayCount = 8;
+        eveBitsDisplay.innerHTML = '';
+        for (let i = 0; i < displayCount; i++) {
+            await new Promise(resolve => setTimeout(resolve, 120));
+            const bit = Math.floor(Math.random() * 2);
+            const bgColor = '#8b0000'; // Rojo oscuro para Eve
+            eveBitsDisplay.innerHTML += `<span class="bit-square" style="display: inline-block; width: 32px; height: 32px; background: ${bgColor}; border-radius: 6px; line-height: 32px; text-align: center; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${bit}</span>`;
+        }
+    } else {
+        eveSection.style.display = 'none';
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+}
+
+function animatePhoton(photon, width, duration, intercepted) {
+    return new Promise(resolve => {
+        const startTime = Date.now();
+        const eveX = width * 0.5; // Posición de Eve (mitad del camino)
+        
+        function frame() {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            let x, y, size;
+            
+            if (intercepted && progress >= 0.4) {
+                // Si debe ser interceptado, cambiar color y ser "atraído" hacia Eve (abajo)
+                photon.setAttribute('fill', '#ff0000'); // Cambiar a rojo
+                photon.setAttribute('filter', 'drop-shadow(0 0 8px rgba(255, 0, 0, 0.9))');
+                
+                // Hacer que siga una trayectoria curva hacia Eve (abajo)
+                const interceptProgress = (progress - 0.4) / 0.6; // Progreso desde el 40% al 100%
+                
+                // Posición X: llega hasta Eve
+                x = 20 + (width - 40) * 0.4 + (eveX - (20 + (width - 40) * 0.4)) * interceptProgress;
+                
+                // Posición Y: cae hacia abajo (fuera del SVG)
+                y = 30 + Math.sin(interceptProgress * Math.PI * 0.5) * 15 + interceptProgress * 50;
+                
+                size = 5 + interceptProgress * 2; // Aumentar tamaño
+            } else {
+                // Movimiento normal hacia Bob
+                x = 20 + (width - 40) * progress;
+                y = 30;
+                size = 5;
+            }
+            
+            photon.setAttribute('cx', x);
+            photon.setAttribute('cy', y);
+            photon.setAttribute('r', size);
+            
+            if (progress < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                photon.remove();
+                resolve();
+            }
+        }
+        
+        requestAnimationFrame(frame);
+    });
+}
+
+async function animateStep3() {
+    const step = document.getElementById('step3');
+    const bobBitsDisplay = document.getElementById('bob-bits-display');
+    
+    step.style.opacity = '1';
+    bobBitsDisplay.innerHTML = '';
+    
+    // Animar medición de Bob
+    const displayCount = 16;
+    for (let i = 0; i < displayCount; i++) {
+        await new Promise(resolve => setTimeout(resolve, 60));
+        const bit = Math.floor(Math.random() * 2);
+        const bgColor = bit === 1 ? '#0077be' : '#ffc107'; // Azul para 1, Amarillo para 0
+        bobBitsDisplay.innerHTML += `<span class="bit-square" style="display: inline-block; width: 32px; height: 32px; background: ${bgColor}; border-radius: 6px; line-height: 32px; text-align: center; color: ${bit === 1 ? 'white' : 'black'}; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${bit}</span>`;
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+}
+
+async function animateStep4(data) {
+    const step = document.getElementById('step4');
+    const matchingText = document.getElementById('matching-text');
+    
+    step.style.opacity = '1';
+    
+    const details = data.simulation_details || {};
+    const matches = details.key_length_after_sifting || 0;
+    
+    matchingText.innerHTML = `<strong>${matches} bits coincidieron</strong> de las bases`;
+    
+    await new Promise(resolve => setTimeout(resolve, 1500));
+}
+
+async function animateStep5(data) {
+    const step = document.getElementById('step5');
+    const finalKeyDiv = document.getElementById('final-key');
+    const finalKeyText = document.getElementById('final-key-text');
+    
+    step.style.opacity = '1';
+    
+    const finalKey = data.session?.final_key || 'N/A';
+    if (finalKey !== 'N/A') {
+        finalKeyText.textContent = finalKey.substring(0, 64) + (finalKey.length > 64 ? '...' : '');
+        finalKeyDiv.style.display = 'block';
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 1500));
+}
+
+async function animateStep6(data) {
+    const step = document.getElementById('step6');
+    const qberResult = document.getElementById('qber-result');
+    
+    step.style.opacity = '1';
+    
+    const details = data.simulation_details || {};
+    const errorRate = details.error_rate || 0;
+    const qber = (errorRate * 100).toFixed(2);
+    const isSecure = data.session?.result === 'secure';
+    
+    qberResult.className = isSecure ? 'alert alert-success' : 'alert alert-danger';
+    qberResult.innerHTML = `
+        <strong>QBER: ${qber}%</strong><br>
+        <small>${isSecure ? '✓ Comunicación Segura' : '⚠ Intruso Detectado'}</small>
+    `;
+    qberResult.style.display = 'block';
+    
+    await new Promise(resolve => setTimeout(resolve, 1500));
+}
+</script>
+
+<style>
+.animation-step {
+    padding: 15px;
+    border-left: 4px solid #0d6efd;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.animation-step.completed {
+    border-left-color: #198754;
+    background-color: #f0f9ff;
+}
+
+.bit-square {
+    transition: all 0.2s ease;
+}
+
+.bit-square:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.shake-animation {
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+</style>
+{% endblock %}
