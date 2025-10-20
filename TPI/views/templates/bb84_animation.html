@@ -433,9 +433,16 @@ async function animateStep5(data) {
     
     step.style.opacity = '1';
     
-    const finalKey = data.session?.final_key || 'N/A';
-    if (finalKey !== 'N/A') {
+    const finalKey = data.session?.final_key;
+    console.log('Final key:', finalKey);
+    
+    if (finalKey && finalKey !== 'N/A' && finalKey !== null && finalKey !== '') {
         finalKeyText.textContent = finalKey.substring(0, 64) + (finalKey.length > 64 ? '...' : '');
+        finalKeyDiv.style.display = 'block';
+        console.log('Clave final mostrada');
+    } else {
+        console.log('No hay clave final disponible');
+        finalKeyDiv.innerHTML = '<code style="word-break: break-all;"><em>No se generó clave (bases no coincidieron)</em></code>';
         finalKeyDiv.style.display = 'block';
     }
     
