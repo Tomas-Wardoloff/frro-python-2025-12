@@ -79,6 +79,62 @@
   </div>
 </div>
 
+<div class="row mt-5">
+  <div class="col-lg-10 mx-auto">
+    <hr />
+    <h3 class="text-center mb-4">¿Cómo funciona el algoritmo de encriptación cuántica BB84?</h3>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <p>
+          El protocolo BB84, desarrollado en 1984 por Charles Bennett y Gilles Brassard, es el primer método de
+          Distribución Cuántica de Claves (QKD). Su objetivo es permitir que dos partes (tradicionalmente llamadas Alice y Bob)
+          compartan una clave secreta de forma segura, utilizando las propiedades fundamentales de la mecánica cuántica.
+        </p>
+
+        <p>
+          A diferencia de los métodos clásicos de encriptación, que se basan en la dificultad matemática de ciertos problemas,
+          el protocolo BB84 garantiza la seguridad gracias a las leyes físicas del mundo cuántico. En particular, se apoya en dos principios:
+        </p>
+
+        <ul>
+          <li><strong>Principio de superposición:</strong> permite que una partícula exista en más de un estado a la vez hasta que se la mida.</li>
+          <li><strong>Principio de no clonación:</strong> establece que es imposible copiar exactamente un estado cuántico desconocido.</li>
+        </ul>
+
+        <h5 class="mt-3">Etapas del protocolo BB84</h5>
+        <ol>
+          <li>
+            <strong>Generación y envío de fotones:</strong>
+            Alice genera una secuencia aleatoria de bits y, para cada bit, elige al azar una base de polarización (rectilínea o diagonal).
+            Cada combinación de bit y base determina la polarización de un fotón que será enviado a Bob.
+          </li>
+          <li>
+            <strong>Medición de fotones por Bob:</strong>
+            Bob recibe los fotones y mide cada uno eligiendo también una base aleatoria. Si Bob elige la base correcta, obtiene el mismo bit que Alice;
+            si elige la incorrecta, el resultado es aleatorio.
+          </li>
+          <li>
+            <strong>Comunicación clásica y filtrado de bases:</strong>
+            A través de un canal público, Alice y Bob comparan las bases usadas (sin revelar los bits) y conservan solo los bits medidos con bases coincidentes,
+            formando una clave compartida preliminar.
+          </li>
+          <li>
+            <strong>Detección de intrusos (Eve):</strong>
+            Si un tercero intenta interceptar los fotones, sus mediciones alterarán los estados y producirán errores detectables. Comparando una muestra
+            de bits públicamente, Alice y Bob pueden detectar la presencia de un espía.
+          </li>
+          <li>
+            <strong>Corrección y refinamiento de la clave:</strong>
+            Si no se detectan intrusos, se aplican procesos de corrección de errores y privacidad amplificada para generar una clave final segura,
+            que luego puede usarse con algoritmos clásicos de cifrado.
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Video explicativo -->
 <div class="card shadow-sm mb-4">
   <div class="card-body">
