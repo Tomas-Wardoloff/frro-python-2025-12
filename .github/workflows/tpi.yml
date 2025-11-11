@@ -27,11 +27,6 @@ jobs:
           cd TPI
           pip install -r requirements.txt
 
-      - name: Create Database
-        run: |
-          cd TPI
-          python init_db.py
-
       - name: Run TPI Tests
         run: |
           cd TPI
