@@ -3,21 +3,28 @@ Capa de Negocio - Controlador de Simulación
 Contiene la lógica de negocio del protocolo BB84
 NO accede directamente a la base de datos, usa la capa de datos
 """
+from business.bb84 import MOTOR_ANALITICO, simulate_bb84
 from datos import session_repository
 
+# Reglas de negocio sobre los parámetros de la simulación
+MIN_KEY_LENGTH = 10
+MAX_KEY_LENGTH = 1000
+MAX_NOISE_RATE = 0.5
 
-def get_user_simulation_history(user_id, limit=10):
+
+def get_user_simulation_history(user_id, limit=10, offset=None):
     """
     Obtiene el historial de simulaciones de un usuario
-    
+
     Args:
         user_id (int): ID del usuario
         limit (int): Número máximo de resultados
-    
+        offset (int, optional): Desplazamiento para paginar
+
     Returns:
         list: Lista de sesiones en formato diccionario
     """
-    sessions = session_repository.get_user_sessions(user_id, limit)
+    sessions = session_repository.get_user_sessions(user_id, limit, offset)
     return [session.to_dict() for session in sessions]
 
 
@@ -25,27 +32,21 @@ def get_user_statistics(user_id):
     """
     Obtiene estadísticas de las simulaciones de un usuario
     Regla de negocio: Calcula métricas agregadas
-    
+
+    El conteo se resuelve en SQL en vez de traer todas las filas a memoria.
+
     Args:
         user_id (int): ID del usuario
-    
+
     Returns:
         dict: Estadísticas del usuario
     """
-    sessions = session_repository.get_user_sessions(user_id)
-    
-    if not sessions:
-        return {
-            'total_simulations': 0,
-            'secure_simulations': 0,
-            'compromised_simulations': 0,
-            'success_rate': 0.0
-        }
-    
-    total = len(sessions)
-    secure = sum(1 for s in sessions if s.result == 'secure')
-    compromised = total - secure
-    
+    por_resultado = session_repository.count_sessions_by_result(user_id)
+
+    secure = por_resultado.get('secure', 0)
+    compromised = por_resultado.get('compromised', 0)
+    total = sum(por_resultado.values())
+
     return {
         'total_simulations': total,
         'secure_simulations': secure,
@@ -54,69 +55,99 @@ def get_user_statistics(user_id):
     }
 
 
-def run_bb84_simulation(user_id, key_length, has_eve):
+def validar_parametros(key_length, noise_rate=0.0, eve_fraction=1.0):
     """
-    Ejecuta la simulación completa del protocolo BB84 con Qiskit
-    
+    Valida los parámetros de una simulación.
+
+    Regla de negocio: la longitud de clave tiene que estar en un rango donde el
+    protocolo sea estadísticamente significativo y el cómputo acotado.
+
+    Returns:
+        str | None: mensaje de error, o None si los parámetros son válidos
+    """
+    if key_length is None:
+        return 'Debe indicar la longitud de la clave'
+
+    if key_length < MIN_KEY_LENGTH:
+        return f'La longitud de la clave debe ser al menos {MIN_KEY_LENGTH} bits'
+
+    if key_length > MAX_KEY_LENGTH:
+        return f'La longitud de la clave no puede exceder {MAX_KEY_LENGTH} bits'
+
+    if not 0.0 <= noise_rate <= MAX_NOISE_RATE:
+        return f'El ruido del canal debe estar entre 0% y {MAX_NOISE_RATE:.0%}'
+
+    if not 0.0 <= eve_fraction <= 1.0:
+        return 'La fracción interceptada por Eve debe estar entre 0% y 100%'
+
+    return None
+
+
+def run_bb84_simulation(user_id, key_length, has_eve, *, noise_rate=0.0,
+                        eve_strategy=None, eve_fraction=1.0,
+                        engine=MOTOR_ANALITICO):
+    """
+    Ejecuta la simulación completa del protocolo BB84 y la registra
+
     Args:
         user_id (int): ID del usuario que ejecuta la simulación
         key_length (int): Longitud de la clave inicial
         has_eve (bool): Si incluir un espía o no
-    
+        noise_rate (float): Ruido del canal (0.0 a 0.5)
+        eve_strategy (str, optional): 'none' o 'intercept_resend'
+        eve_fraction (float): Fracción de qubits que Eve intercepta
+        engine (str): 'analytic' o 'qiskit'
+
     Returns:
-        dict: Resultado de la simulación
+        dict: Resultado de la simulación, con la traza del protocolo
     """
-    # Validaciones de negocio
-    if key_length < 10:
-        return {
-            'success': False,
-            'message': 'La longitud de la clave debe ser al menos 10 bits'
-        }
-    
-    if key_length > 1000:
-        return {
-            'success': False,
-            'message': 'La longitud de la clave no puede exceder 1000 bits'
-        }
-    
+    error = validar_parametros(key_length, noise_rate, eve_fraction)
+    if error:
+        return {'success': False, 'message': error}
+
     try:
-        # Importar la simulación BB84
-        from business.bb84_simulation import simulate_bb84
-        
-        # Ejecutar la simulación cuántica
-        sim_result = simulate_bb84(key_length, has_eve)
-        
-        if not sim_result['success']:
-            return sim_result
-        
-        # Guardar en la base de datos
-        session = session_repository.create_session(
-            user_id=user_id,
-            key_length=key_length,
-            has_eve=has_eve,
-            result=sim_result['result'],
-            final_key=sim_result.get('final_key'),
-            error_rate=sim_result.get('error_rate')
+        resultado = simulate_bb84(
+            key_length,
+            has_eve,
+            noise_rate=noise_rate,
+            eve_strategy=eve_strategy,
+            eve_fraction=eve_fraction,
+            engine=engine,
         )
-        
-        return {
-            'success': True,
-            'message': sim_result['message'],
-            'session': session.to_dict(),
-            'alice_bits': sim_result.get('alice_bits', []),
-            'bob_bits': sim_result.get('bob_bits', []),
-            'eve_bits': sim_result.get('eve_bits', []),
-            'simulation_details': {
-                'key_length_initial': sim_result.get('key_length_initial'),
-                'key_length_after_sifting': sim_result.get('key_length_after_sifting'),
-                'key_length_final': sim_result.get('key_length_final'),
-                'matching_bases': sim_result.get('matching_bases'),
-                'error_rate': sim_result.get('error_rate')
-            }
-        }
-    
-    except Exception as e:
-        return {
-            'success': False,
-            'message': f'Error en la simulación: {str(e)}'
-        }
+    except Exception as exc:  # noqa: BLE001 - la vista necesita un mensaje
+        return {'success': False, 'message': f'Error en la simulación: {exc}'}
+
+    # Una corrida abortada (muy pocas bases coincidentes) no se guarda:
+    # no produjo ni clave ni una estimación de error utilizable.
+    if not resultado.success:
+        return {'success': False, 'message': resultado.message}
+
+    session = session_repository.create_session(
+        user_id=user_id,
+        key_length=key_length,
+        has_eve=resultado.eve_fraction > 0,
+        result=resultado.result,
+        final_key=resultado.final_key,
+        error_rate=resultado.error_rate,
+    )
+
+    resumen = resultado.summary()
+    return {
+        'success': True,
+        'message': resultado.message,
+        'session': session.to_dict(),
+        # Traza real del protocolo, para que la vista dibuje lo que pasó
+        # de verdad en lugar de inventar bits.
+        'trace': resultado.trace(),
+        'simulation_details': {
+            'key_length_initial': resumen['key_length_initial'],
+            'key_length_after_sifting': resumen['key_length_after_sifting'],
+            'key_length_final': resumen['key_length_final'],
+            'matching_bases': resumen['matching_bases'],
+            'error_rate': resumen['error_rate'],
+            'noise_rate': resumen['noise_rate'],
+            'eve_strategy': resumen['eve_strategy'],
+            'eve_fraction': resumen['eve_fraction'],
+            'engine': resumen['engine'],
+        },
+    }
