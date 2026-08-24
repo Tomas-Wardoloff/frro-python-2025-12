@@ -97,7 +97,12 @@ def get_user_info(user_id):
         return {
             'id': user.id,
             'username': user.username,
-            'created_at': user.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            # created_at es opcional: las cuentas creadas antes de que existiera
+            # la columna la tienen vacía.
+            'created_at': (
+                user.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                if user.created_at else None
+            ),
         }
     
     return None

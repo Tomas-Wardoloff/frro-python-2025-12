@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 from views.routes import configure_routes
 # Importar la base de datos desde la capa de datos
 from datos import db
-# Importar TODOS los modelos para que SQLAlchemy los registre
-from datos.models import User, SimulationSession
+# Importar TODOS los modelos para que SQLAlchemy los registre.
+# El import es necesario por su efecto colateral, no por los nombres.
+from datos.models import User, SimulationSession  # noqa: F401
     
 # Cargar variables de entorno
 load_dotenv()

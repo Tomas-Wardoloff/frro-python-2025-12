@@ -150,16 +150,10 @@
 </div>
 
 <script>
-// Prevenir que se repita la animación si se recarga la página
+// Evita que la animación se dispare dos veces en la misma carga.
+// (Antes había acá un handler de 'beforeunload' que asignaba location.href:
+// durante beforeunload esa asignación no navega a ningún lado, sólo estorbaba.)
 let animationStarted = false;
-
-// Verificar si ya se ejecutó la animación
-window.addEventListener('beforeunload', function() {
-    if (animationStarted) {
-        // Redirigir al dashboard si se recarga durante la animación
-        window.location.href = '{{ url_for("dashboard") }}';
-    }
-});
 
 document.addEventListener('DOMContentLoaded', function() {
     runBB84Animation();

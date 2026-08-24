@@ -1,29 +1,9 @@
 """
 Tests para los modelos de la base de datos
 """
-import pytest
-import sys
-import os
-
-# Agregar el directorio TPI al path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from app import app, db
 from datos.models import User, SimulationSession
 from datetime import datetime
-
-
-@pytest.fixture
-def client():
-    """Crea un cliente de prueba con base de datos temporal"""
-    app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    
-    with app.app_context():
-        db.create_all()
-        yield app.test_client()
-        db.session.remove()
-        db.drop_all()
 
 
 class TestUserModel:
