@@ -103,10 +103,14 @@ jobs:
       # F821 (nombre no definido) ya NO se silencia: escondia bugs reales,
       # como la referencia a User.created_at que no existia en el modelo.
       # C901 tampoco, para que --max-complexity sirva de algo.
+      #
+      # Se usa --extend-ignore y no --ignore: este ultimo reemplaza la lista
+      # por defecto de flake8, que incluye W503 porque PEP8 recomienda cortar
+      # la linea ANTES del operador binario, no despues.
       - name: Test Style
         run: |
           flake8 TPI \
             --exclude=TPI/.venv,TPI/__pycache__ \
             --count --max-complexity=15 --max-line-length=130 \
-            --ignore=E266,F401,E402,W293,E303 \
+            --extend-ignore=E266,F401,E402,W293,E303 \
             --statistics --show-source

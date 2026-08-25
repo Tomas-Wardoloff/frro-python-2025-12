@@ -129,9 +129,9 @@ class TestAislamientoDeLaSuite:
                 if 'create_app' not in linea:
                     culpables.append(f'{archivo.name}: {linea}')
 
+        detalle = '\n'.join(culpables)
         assert not culpables, (
-            'Estos tests usan la app global, que apunta a la base real:\n'
-            + '\n'.join(culpables)
+            f'Estos tests usan la app global, que apunta a la base real:\n{detalle}'
         )
 
     def test_la_config_de_test_nunca_apunta_a_un_archivo(self, app):
