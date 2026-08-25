@@ -193,8 +193,10 @@ class TestReglaAislamientoEntreUsuarios:
         assert simulation_controller.delete_user_session(sid, 1) is True
 
     def test_las_estadisticas_no_mezclan_usuarios(self, contexto):
-        auth_controller.register_user('a', 'password123')
-        auth_controller.register_user('b', 'password123')
+        # Nombres de 3 caracteres o mas: con menos, la propia regla de negocio
+        # rechaza el registro y el usuario nunca se crea
+        assert auth_controller.register_user('ana', 'password123')['success']
+        assert auth_controller.register_user('bruno', 'password123')['success']
         self._crear_sesion(1)
         self._crear_sesion(1)
 

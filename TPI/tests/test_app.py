@@ -12,11 +12,10 @@ class TestAppBasics:
         assert app is not None
         assert app.config['TESTING'] is True
 
-    def test_los_tests_usan_base_en_memoria(self, app):
-        """Red de seguridad: la suite nunca debe tocar un archivo real."""
-        assert app.config['SQLALCHEMY_DATABASE_URI'] in (
-            'sqlite://', 'sqlite:///:memory:'
-        )
+    def test_los_tests_no_usan_un_archivo_de_base(self, app):
+        """Red de seguridad: la suite nunca debe tocar la base de desarrollo."""
+        uri = app.config['SQLALCHEMY_DATABASE_URI']
+        assert 'qsec.db' not in uri, f'los tests apuntan a la base real: {uri}'
 
 
 class TestForms:

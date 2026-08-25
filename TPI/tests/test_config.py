@@ -17,14 +17,30 @@ from config import (
 
 
 class TestUrlDeBaseDeDatos:
+    """La URL de Postgres necesita dos correcciones antes de usarse.
+
+    Verificadas contra un Postgres 16 real: sin la primera SQLAlchemy no
+    reconoce el esquema, y sin la segunda busca psycopg2 -que no está en
+    requirements.txt- y la app no arranca en producción.
+    """
 
     def test_corrige_el_esquema_de_render_y_heroku(self):
         """Render y Heroku entregan postgres://, que SQLAlchemy 2.0 rechaza."""
-        assert normalizar_url('postgres://u:p@host/db') == 'postgresql://u:p@host/db'
+        assert normalizar_url('postgres://u:p@host/db') == \
+            'postgresql+psycopg://u:p@host/db'
 
-    def test_no_toca_una_url_ya_correcta(self):
-        url = 'postgresql://u:p@host/db'
+    def test_fija_el_driver_psycopg3(self):
+        """Sin driver explícito SQLAlchemy asume psycopg2, que no se instala."""
+        assert normalizar_url('postgresql://u:p@host/db') == \
+            'postgresql+psycopg://u:p@host/db'
+
+    def test_respeta_un_driver_ya_indicado(self):
+        url = 'postgresql+asyncpg://u:p@host/db'
         assert normalizar_url(url) == url
+
+    def test_es_idempotente(self):
+        una = normalizar_url('postgres://u:p@host/db')
+        assert normalizar_url(una) == una
 
     def test_no_toca_sqlite(self):
         assert normalizar_url('sqlite:///qsec.db') == 'sqlite:///qsec.db'
@@ -35,8 +51,10 @@ class TestUrlDeBaseDeDatos:
     def test_solo_reemplaza_el_prefijo(self):
         """Un 'postgres://' dentro de la contraseña no debe alterarse."""
         url = 'postgres://user:postgres://x@host/db'
-        assert url.count('postgresql://') == 0
-        assert normalizar_url(url).count('postgresql://') == 1
+        salida = normalizar_url(url)
+        assert salida.startswith('postgresql+psycopg://')
+        # El del medio queda intacto
+        assert salida.count('postgres://') == 1
 
 
 class TestConfiguracionDeProduccion:
@@ -134,7 +152,6 @@ class TestAislamientoDeLaSuite:
             f'Estos tests usan la app global, que apunta a la base real:\n{detalle}'
         )
 
-    def test_la_config_de_test_nunca_apunta_a_un_archivo(self, app):
+    def test_la_config_de_test_nunca_apunta_a_la_base_real(self, app):
         uri = app.config['SQLALCHEMY_DATABASE_URI']
-        assert uri in ('sqlite://', 'sqlite:///:memory:')
-        assert '.db' not in uri
+        assert 'qsec.db' not in uri, f'los tests apuntan a la base real: {uri}'

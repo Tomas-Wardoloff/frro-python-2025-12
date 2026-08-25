@@ -12,16 +12,38 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 CLAVE_DE_DESARROLLO = 'dev-secret-key-change-in-production'
 
 
+# Driver de PostgreSQL que se usa. SQLAlchemy asume psycopg2 cuando la URL
+# dice sólo "postgresql://", pero el que está en requirements.txt es psycopg 3,
+# que se selecciona con "postgresql+psycopg://". Sin esto la app arranca en
+# local con SQLite y falla en producción con "No module named 'psycopg2'".
+DRIVER_POSTGRES = 'postgresql+psycopg'
+
+
 def normalizar_url(url):
     """
     Corrige el esquema de las URL de Postgres.
 
-    Render y Heroku entregan ``DATABASE_URL`` empezando con ``postgres://``,
-    un esquema que SQLAlchemy 2.0 ya no reconoce y que hace fallar el arranque
-    con "Can't load plugin". El driver espera ``postgresql://``.
+    Hace dos cosas:
+
+    1. Render y Heroku entregan ``DATABASE_URL`` empezando con ``postgres://``,
+       un esquema que SQLAlchemy 2.0 ya no reconoce y que hace fallar el
+       arranque con "Can't load plugin".
+    2. Fija el driver psycopg 3, que es el que está en requirements.txt. Sin
+       esto SQLAlchemy busca psycopg2, que no está instalado.
+
+    Una URL que ya indique driver (``postgresql+asyncpg://``, por ejemplo) se
+    respeta tal cual.
     """
-    if url and url.startswith('postgres://'):
-        return url.replace('postgres://', 'postgresql://', 1)
+    if not url:
+        return url
+
+    if url.startswith('postgres://'):
+        return DRIVER_POSTGRES + url[len('postgres'):]
+
+    # "postgresql://" sin driver explícito
+    if url.startswith('postgresql://'):
+        return DRIVER_POSTGRES + url[len('postgresql'):]
+
     return url
 
 

@@ -357,3 +357,100 @@ class TestVisibilidadDeControles:
 
         esperar_fin_de_animacion(pagina)
         assert pagina.is_visible('#dashboard-button')
+
+
+# ============================================================== responsive
+
+VIEWPORTS_MOVILES = [
+    ('iPhone SE', 375, 667),
+    ('iPhone 14', 390, 844),
+    ('iPad mini', 768, 1024),
+]
+
+_JS_ANCHO = "() => document.documentElement.scrollWidth"
+
+_JS_DESBORDES = """(vw) => {
+    const malos = [];
+    document.querySelectorAll('*').forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (r.right > vw + 2 && r.width > 0) {
+            const cls = String(el.className || '').split(' ').slice(0, 2).join('.');
+            malos.push(el.tagName.toLowerCase() + (cls ? '.' + cls : ''));
+        }
+    });
+    return [...new Set(malos)].slice(0, 5);
+}"""
+
+
+def _ancho_del_documento(pagina):
+    return pagina.evaluate(_JS_ANCHO)
+
+
+def _elementos_que_desbordan(pagina, ancho):
+    """Los elementos que se salen del viewport, para poder arreglarlos."""
+    return pagina.evaluate(_JS_DESBORDES, ancho)
+
+
+class TestResponsive:
+    """El sitio tiene que verse bien en celular.
+
+    El checklist del TPI lo pide, y en la demo alguien va a abrir la URL en el
+    telefono. El defecto clasico es el desborde horizontal: contenido mas ancho
+    que la pantalla, que obliga a hacer scroll lateral. Las tablas anchas -la
+    traza tiene siete columnas- son las candidatas naturales.
+    """
+
+    @pytest.mark.parametrize('dispositivo,ancho,alto', VIEWPORTS_MOVILES)
+    def test_las_paginas_publicas_no_desbordan(self, navegador, servidor,
+                                               dispositivo, ancho, alto):
+        contexto = navegador.new_context(viewport={'width': ancho, 'height': alto})
+        pag = contexto.new_page()
+        try:
+            for ruta in ('/', '/login', '/register'):
+                pag.goto(f'{servidor}{ruta}')
+                pag.wait_for_timeout(300)
+                doc = _ancho_del_documento(pag)
+                assert doc <= ancho + 2, (
+                    f'{ruta} en {dispositivo}: el documento mide {doc}px sobre '
+                    f'{ancho}px. Desbordan: {_elementos_que_desbordan(pag, ancho)}'
+                )
+        finally:
+            contexto.close()
+
+    @pytest.mark.parametrize('dispositivo,ancho,alto', VIEWPORTS_MOVILES)
+    def test_las_paginas_privadas_no_desbordan(self, pagina, servidor,
+                                               dispositivo, ancho, alto):
+        # Una corrida para que el historial y el detalle tengan contenido
+        pagina.goto(f'{servidor}/animation?key_length=600'
+                    '&eve_strategy=intercept_resend&eve_fraction=60&engine=analytic')
+        esperar_fin_de_animacion(pagina)
+        sid = pagina.get_attribute('#detail-link', 'href').rstrip('/').split('/')[-1]
+
+        pagina.set_viewport_size({'width': ancho, 'height': alto})
+
+        for nombre, ruta in (('simulador', '/simulator'), ('dashboard', '/dashboard'),
+                             ('historial', '/history'), ('detalle', f'/simulation/{sid}')):
+            pagina.goto(f'{servidor}{ruta}')
+            pagina.wait_for_timeout(600)
+            doc = _ancho_del_documento(pagina)
+            assert doc <= ancho + 2, (
+                f'{nombre} en {dispositivo}: el documento mide {doc}px sobre '
+                f'{ancho}px. Desbordan: {_elementos_que_desbordan(pagina, ancho)}'
+            )
+
+    def test_la_tabla_de_la_traza_scrollea_dentro_de_su_caja(self, pagina, servidor):
+        """La tabla es ancha a proposito; lo que no puede es empujar la pagina."""
+        pagina.goto(f'{servidor}/animation?key_length=400&eve_strategy=none&engine=analytic')
+        esperar_fin_de_animacion(pagina)
+        pagina.click('#detail-link')
+        pagina.wait_for_selector('text=Traza del protocolo', timeout=15000)
+
+        pagina.set_viewport_size({'width': 375, 'height': 667})
+        pagina.wait_for_timeout(400)
+
+        contenedor = pagina.evaluate(
+            "() => { const t = document.querySelector('.table-responsive');"
+            " return t ? {scroll: t.scrollWidth, visible: t.clientWidth} : null; }"
+        )
+        assert contenedor, 'la tabla no esta en un contenedor scrolleable'
+        assert _ancho_del_documento(pagina) <= 377, 'la tabla empuja la pagina'
