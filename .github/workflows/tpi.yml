@@ -114,6 +114,36 @@ jobs:
           print('La app funciona sin Qiskit')
           PY
 
+  browser-test:
+    name: Tests de navegador (Playwright)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: TPI/requirements-dev.txt
+
+      - name: Install Dependencies
+        working-directory: TPI
+        run: pip install -r requirements-dev.txt
+
+      - name: Install Chromium
+        working-directory: TPI
+        run: playwright install --with-deps chromium
+
+      # Es lo unico que verifica el JavaScript: el resto de la suite llega
+      # hasta el HTML que sale del servidor. El test central compara los bits
+      # dibujados en pantalla contra los que devolvio la API, porque la
+      # animacion llego a generarlos con Math.random() en el browser.
+      - name: Tests de navegador
+        working-directory: TPI
+        run: pytest tests/ -m browser -v
+
   style-test:
     needs: tpi-test
     name: Verificación de Estilo (Flake8)

@@ -139,7 +139,11 @@
                 </div>
                 
                 <!-- Botón para ir al dashboard -->
-                <div class="text-center mt-4 d-flex gap-2 justify-content-center flex-wrap" id="dashboard-button" style="display: none;">
+                <!-- Sin d-flex: esa clase de Bootstrap es display:flex !important y
+                     le gana al display:none de abajo, con lo que los botones se
+                     verian durante toda la animacion. El JS pone display:flex al
+                     terminar. -->
+                <div class="text-center mt-4 gap-2 justify-content-center flex-wrap" id="dashboard-button" style="display: none;">
                     <a href="#" class="btn btn-primary btn-lg" id="detail-link">
                         <i class="bi bi-table"></i> Ver el detalle bit a bit
                     </a>
