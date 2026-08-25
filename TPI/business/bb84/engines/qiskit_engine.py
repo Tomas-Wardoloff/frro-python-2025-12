@@ -56,11 +56,20 @@ def _medir(qc, base):
     return qc
 
 
-def _correr_lote(simulator, circuitos):
-    """Ejecuta todos los circuitos en una sola llamada y devuelve los bits."""
+def _correr_lote(simulator, circuitos, semilla=None):
+    """Ejecuta todos los circuitos en una sola llamada y devuelve los bits.
+
+    Aer tiene su propio generador de números aleatorios, independiente del
+    ``rng`` que usa el resto del protocolo. Sin pasarle ``seed_simulator`` las
+    corridas no son reproducibles aunque se fije la semilla del protocolo, y
+    los tests que comparan contra la teoría se vuelven inestables.
+    """
     if not circuitos:
         return []
-    resultado = simulator.run(circuitos, shots=1).result()
+    kwargs = {'shots': 1}
+    if semilla is not None:
+        kwargs['seed_simulator'] = semilla
+    resultado = simulator.run(circuitos, **kwargs).result()
     bits = []
     for idx in range(len(circuitos)):
         counts = resultado.get_counts(idx)
@@ -85,6 +94,11 @@ def transmitir(alice_bits, alice_bases, bob_bases, *,
     simulator = AerSimulator()
     n = len(alice_bits)
 
+    # Semillas para Aer derivadas del rng del protocolo: así una misma semilla
+    # reproduce la corrida completa, mediciones cuánticas incluidas.
+    semilla_eve = rng.randrange(2 ** 31)
+    semilla_bob = rng.randrange(2 ** 31)
+
     # --- Etapa 1: Eve mide los qubits que decide interceptar ---
     eve_bases = [SIN_EVE] * n
     eve_bits = [SIN_EVE] * n
@@ -100,7 +114,7 @@ def transmitir(alice_bits, alice_bases, bob_bases, *,
             indices_eve.append(i)
             circuitos_eve.append(_medir(_preparar(alice_bits[i], alice_bases[i]), base_eve))
 
-    for i, bit in zip(indices_eve, _correr_lote(simulator, circuitos_eve)):
+    for i, bit in zip(indices_eve, _correr_lote(simulator, circuitos_eve, semilla_eve)):
         eve_bits[i] = bit
 
     # --- Etapa 2: Bob mide lo que llega (reenviado por Eve o original) ---
@@ -113,7 +127,7 @@ def transmitir(alice_bits, alice_bases, bob_bases, *,
             qc = _preparar(alice_bits[i], alice_bases[i])
         circuitos_bob.append(_medir(qc, bob_bases[i]))
 
-    bob_results = _correr_lote(simulator, circuitos_bob)
+    bob_results = _correr_lote(simulator, circuitos_bob, semilla_bob)
 
     # --- Etapa 3: ruido del detector (idéntico al motor analítico) ---
     if noise_rate > 0:

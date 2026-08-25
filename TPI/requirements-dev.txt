@@ -1,0 +1,13 @@
+# Dependencias de desarrollo: incluye todo lo de producción más el motor de
+# circuitos cuánticos y las herramientas de test.
+-r requirements.txt
+
+# Motor de simulación cuántica (opcional en producción)
+qiskit==2.2.0
+qiskit-aer==0.17.2
+numpy==2.3.3
+scipy==1.16.2
+
+# Testing y estilo
+pytest==8.4.2
+flake8==7.1.1

@@ -1,34 +1,37 @@
 """
 Tests para la aplicación Flask
 """
-from app import app
 from views.forms import LoginForm, RegisterForm
 
 
 class TestAppBasics:
     """Tests básicos de la aplicación Flask"""
     
-    def test_app_exists(self):
-        """Test: la app existe"""
+    def test_la_app_se_construye(self, app):
+        """La factory devuelve una aplicación utilizable."""
         assert app is not None
-    
-    def test_app_is_testing(self, client):
-        """Test: la app está en modo testing"""
         assert app.config['TESTING'] is True
+
+    def test_los_tests_usan_base_en_memoria(self, app):
+        """Red de seguridad: la suite nunca debe tocar un archivo real."""
+        assert app.config['SQLALCHEMY_DATABASE_URI'] in (
+            'sqlite://', 'sqlite:///:memory:'
+        )
 
 
 class TestForms:
     """Tests para los formularios"""
     
-    def test_login_form_fields(self):
-        """Test: LoginForm tiene los campos requeridos"""
-        # Solo verificar que la clase existe y puede ser importada
-        assert LoginForm is not None
-    
-    def test_register_form_fields(self):
-        """Test: RegisterForm tiene los campos requeridos"""
-        # Solo verificar que la clase existe y puede ser importada
-        assert RegisterForm is not None
+    def test_login_form_tiene_sus_campos(self, app):
+        """Antes esto sólo comprobaba que la clase se pudiera importar."""
+        with app.test_request_context():
+            campos = set(LoginForm()._fields)
+        assert {'username', 'password', 'remember_me'} <= campos
+
+    def test_register_form_tiene_sus_campos(self, app):
+        with app.test_request_context():
+            campos = set(RegisterForm()._fields)
+        assert {'username', 'password'} <= campos
 
 
 class TestRoutes:

@@ -1,54 +1,39 @@
 """
 Configuración compartida de pytest.
 
-IMPORTANTE — por qué se toca el entorno antes de importar la app:
+Cada test recibe una aplicación construida por la factory con
+``TestingConfig``, cuya base vive en memoria. Eso garantiza que la suite no
+pueda tocar ``qsec.db`` ni ningún otro archivo real.
 
-``app.py`` ejecuta ``db.create_all()`` a nivel de módulo, lo que liga el engine
-de SQLAlchemy a la base indicada por ``DATABASE_URL`` en el momento del import.
-Flask-SQLAlchemy cachea ese engine, así que cambiar
-``SQLALCHEMY_DATABASE_URI`` en una fixture *después* del import no tiene ningún
-efecto: la conexión sigue apuntando al archivo real.
-
-Las fixtures anteriores hacían exactamente eso y terminaban corriendo
-``db.drop_all()`` contra ``qsec.db``. Resultado: correr la suite borraba la base
-de desarrollo y los tests igual daban verde.
-
-Fijar ``DATABASE_URL`` acá, antes del import, garantiza que los tests nunca
-toquen un archivo real. La fixture además lo verifica antes de crear tablas.
+Antes esto no era así: ``app.py`` creaba la app y llamaba a ``db.create_all()``
+a nivel de módulo, de modo que el engine de SQLAlchemy quedaba ligado al
+archivo real apenas se importaba. Las fixtures cambiaban
+``SQLALCHEMY_DATABASE_URI`` a ``:memory:`` *después* de ese import, cuando ya
+no tenía efecto, y el ``db.drop_all()`` del teardown terminaba borrando la base
+de desarrollo. La suite daba verde mientras destruía los datos.
 """
-import os
+import pytest
 
-# Tiene que ir antes de importar app (ver explicación de arriba).
-os.environ['DATABASE_URL'] = 'sqlite://'          # base en memoria
-os.environ.setdefault('SECRET_KEY', 'clave-de-test')
-os.environ['FLASK_ENV'] = 'testing'
-
-import pytest  # noqa: E402
-
-from app import app as flask_app  # noqa: E402
-from datos import db  # noqa: E402
-
-
-def _es_en_memoria(uri):
-    return uri in ('sqlite://', 'sqlite:///:memory:')
+from app import create_app
+from config import TestingConfig
+from datos import db
 
 
 @pytest.fixture
 def app():
-    """App configurada para tests, con una base en memoria por test."""
-    flask_app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+    """Aplicación aislada, con una base en memoria por test."""
+    aplicacion = create_app(TestingConfig, crear_tablas=False)
 
-    uri = flask_app.config['SQLALCHEMY_DATABASE_URI']
-    # Red de seguridad: si por lo que sea la app quedó apuntando a un archivo,
-    # se aborta antes de crear o borrar nada.
-    assert _es_en_memoria(uri), (
-        f'Los tests no pueden correr contra una base real ({uri!r}). '
-        'Revisá que conftest.py se importe antes que app.'
+    uri = aplicacion.config['SQLALCHEMY_DATABASE_URI']
+    # Red de seguridad: si alguna vez la configuración de test dejara de
+    # apuntar a memoria, se corta antes de crear o borrar nada.
+    assert uri in ('sqlite://', 'sqlite:///:memory:'), (
+        f'Los tests no pueden correr contra una base real ({uri!r})'
     )
 
-    with flask_app.app_context():
+    with aplicacion.app_context():
         db.create_all()
-        yield flask_app
+        yield aplicacion
         db.session.remove()
         db.drop_all()
 

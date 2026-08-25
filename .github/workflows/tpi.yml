@@ -3,35 +3,84 @@ name: TPI
 on:
   push:
     branches: "TPI"
-
+  pull_request:
+    branches: "TPI"
   workflow_dispatch:
 
 jobs:
 
   tpi-test:
-    name: Tests TPI
+    name: Tests TPI (Python ${{ matrix.python-version }})
 
     runs-on: ubuntu-latest
-    
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 es el minimo soportado; 3.13 es el que se usa en desarrollo
+        python-version: ['3.11', '3.13']
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          architecture: 'x64'
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: TPI/requirements-dev.txt
 
       - name: Install Dependencies
-        run: |
-          cd TPI
-          pip install -r requirements.txt
+        working-directory: TPI
+        # requirements-dev incluye produccion mas qiskit y las herramientas de
+        # test, para que la validacion cruzada entre motores corra en CI
+        run: pip install -r requirements-dev.txt
 
       - name: Run TPI Tests
-        run: |
-          cd TPI
-          pytest tests/ -v
+        working-directory: TPI
+        run: pytest tests/ -v
 
+  deploy-check:
+    name: La app arranca sin Qiskit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: TPI/requirements.txt
+
+      # Qiskit pesa ~130 MB con SciPy y no entra en los limites de varias
+      # plataformas. Este job instala SOLO las dependencias de produccion y
+      # verifica que la app levante y simule igual con el motor analitico.
+      - name: Install production dependencies only
+        working-directory: TPI
+        run: pip install -r requirements.txt
+
+      - name: App boots and simulates without Qiskit
+        working-directory: TPI
+        env:
+          FLASK_ENV: testing
+        run: |
+          python - <<'PY'
+          from business.bb84 import motores_disponibles, simulate_bb84
+          assert motores_disponibles() == ['analytic'], motores_disponibles()
+
+          r = simulate_bb84(400, has_eve=True, seed=1)
+          assert r.success and r.engine == 'analytic'
+
+          # Pedir qiskit sin tenerlo tiene que degradar, no romper
+          assert simulate_bb84(100, engine='qiskit', seed=1).engine == 'analytic'
+
+          from app import create_app
+          from config import TestingConfig
+          assert create_app(TestingConfig).test_client().get('/').status_code == 200
+          print('La app funciona sin Qiskit')
+          PY
 
   style-test:
     needs: tpi-test
@@ -40,17 +89,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          architecture: 'x64'
+          python-version: '3.13'
+          cache: 'pip'
 
       - name: Install Flake8
         run: pip install flake8
 
+      # F821 (nombre no definido) ya NO se silencia: escondia bugs reales,
+      # como la referencia a User.created_at que no existia en el modelo.
+      # C901 tampoco, para que --max-complexity sirva de algo.
       - name: Test Style
-        run: flake8 TPI --count --max-complexity=10 --max-line-length=130 --ignore=E266,F401,E402,W293,E303,C901,F821 --statistics --show-source
-
+        run: |
+          flake8 TPI \
+            --exclude=TPI/.venv,TPI/__pycache__ \
+            --count --max-complexity=15 --max-line-length=130 \
+            --ignore=E266,F401,E402,W293,E303 \
+            --statistics --show-source

@@ -22,10 +22,15 @@ ESCENARIOS = [
     (0.03, 0.40),   # ruido y espía combinados
 ]
 
-# Bits por escenario. Con 4000 qubits quedan ~2000 cribados: suficiente para
-# que el QBER medido se acerque a la teoría.
+# Bits por escenario. Con 4000 qubits quedan ~2000 cribados, con lo que el
+# error estándar del QBER medido es de ~0.010 en el peor caso (p=0.25).
 N_BITS = 4000
-TOLERANCIA = 0.03
+
+# 4 desviaciones estándar. La tolerancia anterior de 0.03 quedaba a 3.1 sigma
+# y hacía fallar la suite cada tantas corridas: no por un problema del motor,
+# sino porque comparar una medición estadística contra la teoría con un margen
+# tan justo falla por definición una fracción de las veces.
+TOLERANCIA = 0.04
 
 requiere_qiskit = pytest.mark.skipif(
     not qiskit_engine.disponible(),
@@ -111,3 +116,30 @@ class TestSeleccionDeMotor:
     def test_pedir_qiskit_usa_qiskit(self):
         r = simulate_bb84(64, engine=MOTOR_QISKIT, seed=1)
         assert r.engine == MOTOR_QISKIT
+
+
+class TestReproducibilidad:
+    """Una misma semilla tiene que reproducir la corrida completa."""
+
+    @pytest.mark.parametrize('motor', [MOTOR_ANALITICO,
+                                       pytest.param(MOTOR_QISKIT, marks=requiere_qiskit)])
+    def test_la_semilla_reproduce_la_corrida(self, motor):
+        """Aer tiene su propio RNG: sin sembrarlo, el motor de Qiskit daba
+        resultados distintos aunque se fijara la semilla del protocolo."""
+        corridas = [
+            simulate_bb84(800, has_eve=True, engine=motor, seed=99)
+            for _ in range(3)
+        ]
+        primera = corridas[0]
+        for otra in corridas[1:]:
+            assert otra.alice_bits == primera.alice_bits
+            assert otra.bob_results == primera.bob_results
+            assert otra.eve_bits == primera.eve_bits
+            assert otra.error_rate == primera.error_rate
+
+    @pytest.mark.parametrize('motor', [MOTOR_ANALITICO,
+                                       pytest.param(MOTOR_QISKIT, marks=requiere_qiskit)])
+    def test_semillas_distintas_dan_corridas_distintas(self, motor):
+        a = simulate_bb84(800, has_eve=True, engine=motor, seed=1)
+        b = simulate_bb84(800, has_eve=True, engine=motor, seed=2)
+        assert a.bob_results != b.bob_results
