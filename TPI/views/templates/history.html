@@ -23,6 +23,7 @@
                                     <th>Resultado</th>
                                     <th>Tasa de Error (QBER)</th>
                                     <th>Clave Final</th>
+                                    <th class="text-end">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -69,17 +70,61 @@
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
+                                    <td class="text-end text-nowrap">
+                                        <a href="{{ url_for('simulation_result', session_id=session.id) }}"
+                                           class="btn btn-outline-primary btn-sm" title="Ver detalle">
+                                            <i class="bi bi-table"></i>
+                                        </a>
+                                        <a href="{{ url_for('export_simulation', session_id=session.id) }}"
+                                           class="btn btn-outline-secondary btn-sm" title="Exportar JSON">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <form method="POST" class="d-inline"
+                                              action="{{ url_for('delete_simulation', session_id=session.id) }}"
+                                              onsubmit="return confirm('¿Eliminar la simulación #{{ session.id }}? No se puede deshacer.');">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                     
-                    <div class="mt-3">
-                        <p class="text-muted mb-0">
-                            <i class="bi bi-info-circle"></i> 
-                            Mostrando las últimas {{ sessions|length }} simulaciones
+                    <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <p class="text-muted mb-0 small">
+                            <i class="bi bi-info-circle"></i>
+                            {{ sessions|length }} de {{ paginacion.total }} simulaciones
+                            {% if paginacion.total_paginas > 1 %}
+                                · página {{ paginacion.pagina }} de {{ paginacion.total_paginas }}
+                            {% endif %}
                         </p>
+
+                        {% if paginacion.total_paginas > 1 %}
+                        <nav aria-label="Paginación del historial">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item {{ '' if paginacion.hay_anterior else 'disabled' }}">
+                                    <a class="page-link"
+                                       href="{{ url_for('history', pagina=paginacion.pagina - 1) }}">
+                                        <i class="bi bi-chevron-left"></i> Anterior
+                                    </a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">
+                                        {{ paginacion.pagina }} / {{ paginacion.total_paginas }}
+                                    </span>
+                                </li>
+                                <li class="page-item {{ '' if paginacion.hay_siguiente else 'disabled' }}">
+                                    <a class="page-link"
+                                       href="{{ url_for('history', pagina=paginacion.pagina + 1) }}">
+                                        Siguiente <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        {% endif %}
                     </div>
                 {% else %}
                     <div class="alert alert-info mb-0">

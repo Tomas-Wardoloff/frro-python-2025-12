@@ -185,3 +185,143 @@ def get_simulation_detail(session_id, user_id):
         'session': session.to_dict(),
         'trace': session.trace.to_dict() if session.trace else None,
     }
+
+
+def delete_user_session(session_id, user_id):
+    """
+    Borra una simulación, validando que sea del usuario que la pide.
+
+    Regla de negocio: nadie puede borrar una sesión ajena. Se resuelve
+    buscándola con el filtro de dueño antes de borrar.
+
+    Args:
+        session_id (int): ID de la sesión
+        user_id (int): ID del usuario que pide el borrado
+
+    Returns:
+        bool: True si se borró, False si no existía o no le pertenecía
+    """
+    session = session_repository.get_user_session(session_id, user_id)
+    if session is None:
+        return False
+    return session_repository.delete_session(session_id)
+
+
+def get_paginated_history(user_id, pagina=1, por_pagina=20):
+    """
+    Historial paginado.
+
+    Antes el historial tenía un tope duro de 50 sin forma de ver el resto.
+
+    Args:
+        user_id (int): ID del usuario
+        pagina (int): Número de página, empezando en 1
+        por_pagina (int): Filas por página
+
+    Returns:
+        dict: sesiones de la página más los datos de navegación
+    """
+    pagina = max(1, int(pagina or 1))
+    por_pagina = min(max(1, int(por_pagina or 20)), 100)
+
+    total = session_repository.count_user_sessions(user_id)
+    total_paginas = max(1, -(-total // por_pagina))  # división hacia arriba
+    pagina = min(pagina, total_paginas)
+
+    sesiones = session_repository.get_user_sessions(
+        user_id, limit=por_pagina, offset=(pagina - 1) * por_pagina
+    )
+
+    return {
+        'sesiones': [s.to_dict() for s in sesiones],
+        'pagina': pagina,
+        'total_paginas': total_paginas,
+        'total': total,
+        'hay_anterior': pagina > 1,
+        'hay_siguiente': pagina < total_paginas,
+    }
+
+
+# Cortes del histograma de QBER, en porcentaje
+BUCKETS_QBER = [0, 5, 11, 20, 30, 101]
+
+
+def get_user_analytics(user_id):
+    """
+    Series agregadas para los gráficos del dashboard.
+
+    Args:
+        user_id (int): ID del usuario
+
+    Returns:
+        dict: datos listos para graficar
+    """
+    sesiones = session_repository.get_user_sessions(user_id)
+
+    # Histograma de QBER
+    etiquetas, cuentas = [], []
+    for i in range(len(BUCKETS_QBER) - 1):
+        desde, hasta = BUCKETS_QBER[i], BUCKETS_QBER[i + 1]
+        etiquetas.append(f'{desde}–{hasta}%' if hasta <= 100 else f'{desde}%+')
+        cuentas.append(0)
+
+    for s in sesiones:
+        pct = (s.error_rate or 0) * 100
+        for i in range(len(BUCKETS_QBER) - 1):
+            if BUCKETS_QBER[i] <= pct < BUCKETS_QBER[i + 1]:
+                cuentas[i] += 1
+                break
+
+    # Evolución cronológica del QBER, separando corridas con y sin espía
+    cronologia = sorted(sesiones, key=lambda x: x.timestamp)
+    serie = [
+        {
+            'id': s.id,
+            'qber': round((s.error_rate or 0) * 100, 2),
+            'con_espia': bool(s.has_eve),
+            'ruido': round((s.noise_rate or 0) * 100, 1),
+            'resultado': s.result,
+        }
+        for s in cronologia
+    ]
+
+    return {
+        'histograma': {'etiquetas': etiquetas, 'cuentas': cuentas},
+        'serie': serie,
+        'umbral': 11.0,
+    }
+
+
+def reconstruir_clave_de_eve(traza):
+    """
+    Arma la clave que Eve creería tener, a partir de la traza guardada.
+
+    Sigue el mismo camino que la clave real: se toman los qubits cuyas bases
+    coincidieron y se descartan los que se revelaron en la verificación. Donde
+    Eve no interceptó se pone ``'?'``, porque simplemente no tiene ese bit.
+
+    Devuelve None si la traza no alcanza (en corridas largas se guarda recortada,
+    con lo que no cubre toda la clave).
+
+    Args:
+        traza (dict): la traza persistida de la simulación
+
+    Returns:
+        str | None: la clave parcial de Eve
+    """
+    if not traza:
+        return None
+
+    en_muestra = set(traza.get('sample_positions', []))
+    eve_bits = traza.get('eve_bits', [])
+
+    clave = []
+    for posicion, indice in enumerate(traza.get('sifted_indices', [])):
+        if posicion in en_muestra:
+            continue
+        if indice >= len(eve_bits):
+            return None
+        bit = eve_bits[indice]
+        clave.append('?' if bit < 0 else str(bit))
+
+    return ''.join(clave) if clave else None

@@ -9,11 +9,24 @@ from flask import (
 from flask_login import login_user, logout_user, login_required, current_user
 
 from views.forms import RegisterForm, LoginForm, SimulationForm
-from business import auth_controller, simulation_controller
+from business import auth_controller, otp, simulation_controller
 
 
 def configure_routes(app):
-    """Configura todas las rutas de la aplicación"""
+    """Registra todas las rutas de la aplicación.
+
+    El registro está partido por área. Antes era una sola función con las
+    quince rutas adentro, con una complejidad ciclomática de 33 que el CI
+    silenciaba ignorando C901.
+    """
+    _rutas_publicas(app)
+    _rutas_panel(app)
+    _rutas_simulacion(app)
+    _rutas_api(app)
+
+
+def _rutas_publicas(app):
+    """Portada, registro, inicio y cierre de sesión."""
     
     @app.route('/')
     def home():
@@ -83,8 +96,10 @@ def configure_routes(app):
         logout_user()
         flash('Has cerrado sesión exitosamente', 'info')
         return redirect(url_for('home'))
-    
-    
+
+
+def _rutas_panel(app):
+    """Dashboard e historial del usuario."""
     @app.route('/dashboard')
     @login_required
     def dashboard():
@@ -96,8 +111,10 @@ def configure_routes(app):
         recent_sessions = simulation_controller.get_user_simulation_history(current_user.id, limit=5)
         
         return render_template('dashboard.html', stats=stats, recent_sessions=recent_sessions)
-    
-    
+
+
+def _rutas_simulacion(app):
+    """Simulador, animación, detalle y gestión de sesiones."""
     @app.route('/simulator', methods=['GET', 'POST'])
     @login_required
     def simulator():
@@ -143,9 +160,14 @@ def configure_routes(app):
     @app.route('/history')
     @login_required
     def history():
-        """Historial completo de simulaciones del usuario"""
-        sessions = simulation_controller.get_user_simulation_history(current_user.id, limit=50)
-        return render_template('history.html', sessions=sessions)
+        """Historial paginado de simulaciones del usuario"""
+        pagina = request.args.get('pagina', 1, type=int)
+        datos = simulation_controller.get_paginated_history(
+            current_user.id, pagina=pagina
+        )
+        return render_template(
+            'history.html', sessions=datos['sesiones'], paginacion=datos
+        )
     
     
     @app.route('/animation')
@@ -155,6 +177,68 @@ def configure_routes(app):
         return render_template('bb84_animation.html')
     
     
+    @app.route('/simulation/<int:session_id>/delete', methods=['POST'])
+    @login_required
+    def delete_simulation(session_id):
+        """Borra una simulación del usuario."""
+        if simulation_controller.delete_user_session(session_id, current_user.id):
+            flash('Simulación eliminada', 'success')
+        else:
+            flash('No se encontró esa simulación', 'warning')
+        return redirect(url_for('history'))
+
+    @app.route('/simulation/<int:session_id>/export')
+    @login_required
+    def export_simulation(session_id):
+        """Descarga una simulación completa en JSON."""
+        detalle = simulation_controller.get_simulation_detail(
+            session_id, current_user.id
+        )
+        if detalle is None:
+            abort(404)
+
+        respuesta = jsonify(detalle)
+        respuesta.headers['Content-Disposition'] = (
+            f'attachment; filename=simulacion-{session_id}.json'
+        )
+        return respuesta
+
+    @app.route('/simulation/<int:session_id>/encrypt', methods=['POST'])
+    @login_required
+    def encrypt_message(session_id):
+        """Cifra un mensaje con la clave de esta simulación (one-time-pad)."""
+        detalle = simulation_controller.get_simulation_detail(
+            session_id, current_user.id
+        )
+        if detalle is None:
+            abort(404)
+
+        sesion = detalle['session']
+        resultado = otp.cifrar(
+            (request.form.get('mensaje') or '').strip(),
+            sesion['final_key'] or '',
+            sesion['result'],
+            clave_de_eve=simulation_controller.reconstruir_clave_de_eve(
+                detalle['trace']
+            ),
+        )
+
+        return render_template(
+            'simulation_detail.html',
+            session=sesion,
+            trace=detalle['trace'],
+            cifrado=resultado,
+        )
+
+
+def _rutas_api(app):
+    """Endpoints JSON que consumen la animación y los gráficos."""
+    @app.route('/api/analytics')
+    @login_required
+    def analytics():
+        """Series agregadas para los gráficos del dashboard."""
+        return jsonify(simulation_controller.get_user_analytics(current_user.id))
+
     @app.route('/api/run-simulation', methods=['POST'])
     def run_simulation():
         """API para ejecutar la simulación BB84"""

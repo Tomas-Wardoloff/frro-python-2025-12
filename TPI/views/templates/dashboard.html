@@ -51,6 +51,34 @@
     </div>
 </div>
 
+<!-- Graficos -->
+<div class="row g-3 mb-4" id="graficos-seccion" style="display: none;">
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-bar-chart"></i> Distribución de QBER</div>
+            <div class="card-body">
+                <canvas id="grafico-histograma" height="200"></canvas>
+                <p class="text-muted small mb-0 mt-3">
+                    Cuántas corridas cayeron en cada rango de error. El umbral del 11% separa
+                    las claves utilizables de las que hay que descartar.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-graph-up"></i> QBER a lo largo del tiempo</div>
+            <div class="card-body">
+                <canvas id="grafico-serie" height="200"></canvas>
+                <p class="text-muted small mb-0 mt-3">
+                    Cada punto es una simulación. La línea punteada es el umbral del 11%:
+                    todo lo que queda por encima se descarta.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Acciones rápidas -->
 <div class="row mb-4">
     <div class="col-12">
@@ -136,4 +164,101 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(async function () {
+    const seccion = document.getElementById('graficos-seccion');
+
+    let datos;
+    try {
+        const resp = await fetch('{{ url_for("analytics") }}');
+        if (!resp.ok) return;
+        datos = await resp.json();
+    } catch (e) {
+        // Sin datos no se muestran los gráficos; el resto del dashboard sirve igual.
+        return;
+    }
+
+    if (!datos.serie || datos.serie.length === 0) return;
+    seccion.style.display = 'flex';
+
+    const VERDE = '#198754', ROJO = '#dc3545', GRIS = '#6c757d';
+
+    // --- Histograma de QBER ---
+    new Chart(document.getElementById('grafico-histograma'), {
+        type: 'bar',
+        data: {
+            labels: datos.histograma.etiquetas,
+            datasets: [{
+                label: 'Simulaciones',
+                data: datos.histograma.cuentas,
+                // Los dos primeros rangos quedan bajo el umbral del 11%
+                backgroundColor: datos.histograma.etiquetas.map(
+                    (_, i) => i < 2 ? VERDE : ROJO
+                ),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Corridas' } },
+                x: { title: { display: true, text: 'QBER' } }
+            }
+        }
+    });
+
+    // --- Serie temporal ---
+    new Chart(document.getElementById('grafico-serie'), {
+        type: 'line',
+        data: {
+            labels: datos.serie.map(p => '#' + p.id),
+            datasets: [
+                {
+                    label: 'QBER (%)',
+                    data: datos.serie.map(p => p.qber),
+                    borderColor: GRIS,
+                    backgroundColor: 'rgba(108,117,125,0.12)',
+                    fill: true,
+                    tension: 0.25,
+                    pointRadius: 4,
+                    // Rojo donde hubo espía, verde donde no
+                    pointBackgroundColor: datos.serie.map(p => p.con_espia ? ROJO : VERDE),
+                    pointBorderColor: datos.serie.map(p => p.con_espia ? ROJO : VERDE)
+                },
+                {
+                    label: 'Umbral (11%)',
+                    data: datos.serie.map(() => datos.umbral),
+                    borderColor: ROJO,
+                    borderDash: [6, 4],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function (ctx) {
+                            const p = datos.serie[ctx.dataIndex];
+                            if (!p) return '';
+                            return (p.con_espia ? 'Con espía' : 'Sin espía')
+                                 + ' · ruido ' + p.ruido + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'QBER (%)' } }
+            }
+        }
+    });
+})();
+</script>
 {% endblock %}

@@ -94,6 +94,108 @@
 </div>
 {% endif %}
 
+<!-- One-time-pad -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-lock"></i> Cifrar un mensaje con esta clave</div>
+    <div class="card-body">
+        {% if session.result != 'secure' %}
+            <div class="alert alert-warning mb-0">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Esta clave no se puede usar.</strong> La sesión quedó comprometida:
+                con un QBER por encima del umbral, Eve puede conocer parte de esos bits.
+                El protocolo obliga a descartarla y volver a empezar.
+            </div>
+        {% else %}
+            <p class="text-muted small">
+                La clave se usa como <strong>one-time-pad</strong>: se hace XOR entre el mensaje
+                y la clave, bit a bit. Es el único cifrado con seguridad demostrada de forma
+                incondicional, pero exige que la clave sea aleatoria, tan larga como el mensaje
+                y se use una sola vez. Las tres condiciones son justamente lo que BB84 garantiza.
+            </p>
+
+            <form method="POST" action="{{ url_for('encrypt_message', session_id=session.id) }}"
+                  class="row g-2 align-items-end">
+                <div class="col-md-9">
+                    <label class="form-label" for="mensaje">Mensaje</label>
+                    <input type="text" class="form-control" id="mensaje" name="mensaje"
+                           maxlength="512" placeholder="Escribí algo para cifrar"
+                           value="{{ cifrado.texto_plano if cifrado and cifrado.success else '' }}">
+                    <div class="form-text">
+                        Esta clave tiene {{ session.final_key|length }} bits, así que alcanza
+                        para {{ (session.final_key|length // 8) }} caracteres.
+                    </div>
+                </div>
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-shield-lock"></i> Cifrar
+                    </button>
+                </div>
+            </form>
+
+            {% if cifrado %}
+                {% if cifrado.success %}
+                    <hr>
+                    <div class="mb-3">
+                        <div class="text-muted small text-uppercase fw-bold">Texto cifrado</div>
+                        <code class="d-block p-2 bg-light rounded" style="word-break: break-all;">{{ cifrado.cifrado_hex }}</code>
+                        <div class="form-text">
+                            Usó {{ cifrado.bits_usados }} de los {{ cifrado.bits_disponibles }} bits disponibles.
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100 border-success">
+                                <div class="text-success fw-bold small text-uppercase mb-2">
+                                    <i class="bi bi-check-circle"></i> Bob descifra
+                                </div>
+                                <code style="word-break: break-all;">{{ cifrado.descifrado_por_bob }}</code>
+                                <div class="form-text mt-2">
+                                    Bob tiene la misma clave, así que recupera el mensaje exacto.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100 border-danger">
+                                <div class="text-danger fw-bold small text-uppercase mb-2">
+                                    <i class="bi bi-x-circle"></i> Eve intenta descifrar
+                                </div>
+                                {% if cifrado.descifrado_por_eve is defined %}
+                                    <code style="word-break: break-all;">{{ cifrado.descifrado_por_eve }}</code>
+                                    <div class="form-text mt-2">
+                                        Eve desconoce {{ cifrado.bits_que_eve_desconoce }} de los bits que
+                                        necesita, y sin ellos el resultado es ruido.
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Eve no interceptó esta transmisión, así que no tiene ninguna clave que probar.</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-danger mt-3 mb-0">
+                        <i class="bi bi-exclamation-circle"></i> {{ cifrado.message }}
+                    </div>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Acciones -->
+<div class="d-flex gap-2 flex-wrap mb-4">
+    <a href="{{ url_for('export_simulation', session_id=session.id) }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-download"></i> Exportar a JSON
+    </a>
+    <form method="POST" action="{{ url_for('delete_simulation', session_id=session.id) }}"
+          onsubmit="return confirm('¿Eliminar esta simulación? No se puede deshacer.');">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash"></i> Eliminar
+        </button>
+    </form>
+</div>
+
 <!-- Traza bit a bit -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
