@@ -36,9 +36,41 @@ jobs:
         # test, para que la validacion cruzada entre motores corra en CI
         run: pip install -r requirements-dev.txt
 
-      - name: Run TPI Tests
+      # Se corren por tipo para que el reporte diga que se rompio, no solo
+      # que algo fallo.
+      - name: Tests unitarios y de reglas de negocio
         working-directory: TPI
-        run: pytest tests/ -v
+        run: |
+          pytest tests/test_business_rules.py tests/test_config.py \
+                 tests/test_models.py tests/test_bb84.py -v
+
+      - name: Tests de integracion y de la capa web
+        working-directory: TPI
+        run: pytest tests/test_integration.py tests/test_web.py tests/test_trace.py tests/test_fase4.py tests/test_app.py -v
+
+      - name: Validacion cruzada de los motores de simulacion
+        working-directory: TPI
+        run: pytest tests/test_engines.py -v
+
+      - name: Tests de aceptacion (recorridos de usuario)
+        working-directory: TPI
+        run: pytest tests/test_acceptance.py -v
+
+      # Red de seguridad: la suite completa, por si algun archivo quedo fuera
+      # de los grupos de arriba.
+      - name: Suite completa
+        working-directory: TPI
+        run: pytest tests/ -q
+
+      # La deteccion de espias es probabilistica y varias corridas usan azar.
+      # Repetir la suite detecta tests inestables antes de que molesten.
+      - name: Estabilidad (la suite tres veces)
+        working-directory: TPI
+        run: |
+          for i in 1 2 3; do
+            echo "--- corrida $i ---"
+            pytest tests/ -q || exit 1
+          done
 
   deploy-check:
     name: La app arranca sin Qiskit
