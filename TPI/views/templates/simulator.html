@@ -8,49 +8,125 @@
         <h2 class="mb-4">
             <i class="bi bi-cpu"></i> Simulador del Protocolo BB84
         </h2>
-        
+
         <div class="card shadow mb-4">
             <div class="card-body">
                 <h5 class="card-title">Configuración de la Simulación</h5>
                 <p class="card-text text-muted">
-                    Configura los parámetros de tu simulación del protocolo de distribución cuántica de claves BB84.
+                    Configura los parámetros del canal cuántico y del ataque.
                 </p>
-                
+
                 <form method="POST" action="{{ url_for('simulator') }}">
                     {{ form.hidden_tag() }}
-                    
-                    <div class="mb-3">
-                        {{ form.key_length.label(class="form-label") }}
+
+                    <div class="mb-4">
+                        {{ form.key_length.label(class="form-label fw-semibold") }}
                         {{ form.key_length(class="form-control" + (" is-invalid" if form.key_length.errors else "")) }}
                         {% if form.key_length.errors %}
                             <div class="invalid-feedback">
-                                {% for error in form.key_length.errors %}
-                                    {{ error }}
-                                {% endfor %}
+                                {% for error in form.key_length.errors %}{{ error }}{% endfor %}
                             </div>
                         {% endif %}
                         <div class="form-text">
                             Número de qubits que Alice enviará a Bob (entre 10 y 1000)
                         </div>
                     </div>
-                    
+
+                    <hr class="my-4">
+
+                    <!-- Canal -->
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3">
+                        <i class="bi bi-broadcast"></i> Canal cuántico
+                    </h6>
+
                     <div class="mb-4">
-                        <div class="form-check">
-                            {{ form.has_eve(class="form-check-input") }}
-                            {{ form.has_eve.label(class="form-check-label") }}
+                        <div class="d-flex justify-content-between align-items-center">
+                            {{ form.noise_rate.label(class="form-label fw-semibold mb-0") }}
+                            <span class="badge bg-secondary" id="noise-value">{{ form.noise_rate.data or 0 }}%</span>
                         </div>
+                        {{ form.noise_rate(class="form-range" + (" is-invalid" if form.noise_rate.errors else ""),
+                                           type="range", min="0", max="50", step="1", id="noise-range") }}
+                        {% if form.noise_rate.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.noise_rate.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
                         <div class="form-text">
-                            Si está marcado, Eve interceptará y medirá los qubits, introduciendo errores detectables
+                            Errores que introduce el propio canal, sin que haya nadie espiando.
+                            Por encima del <strong>11%</strong> el protocolo descarta la clave
+                            aunque no haya intrusos: el enlace es inutilizable.
                         </div>
                     </div>
-                    
+
+                    <hr class="my-4">
+
+                    <!-- Ataque -->
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3">
+                        <i class="bi bi-shield-exclamation"></i> Espía (Eve)
+                    </h6>
+
+                    <div class="mb-3">
+                        {{ form.eve_strategy.label(class="form-label fw-semibold") }}
+                        {{ form.eve_strategy(class="form-select", id="eve-strategy") }}
+                        <div class="form-text">
+                            <strong>Interceptar y reenviar</strong>: Eve mide cada qubit en una base
+                            al azar y reenvía lo que midió. Cuando se equivoca de base altera el
+                            estado, y eso es lo que la delata.
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="eve-fraction-group">
+                        <div class="d-flex justify-content-between align-items-center">
+                            {{ form.eve_fraction.label(class="form-label fw-semibold mb-0") }}
+                            <span class="badge bg-secondary" id="fraction-value">{{ form.eve_fraction.data or 0 }}%</span>
+                        </div>
+                        {{ form.eve_fraction(class="form-range" + (" is-invalid" if form.eve_fraction.errors else ""),
+                                             type="range", min="0", max="100", step="5", id="fraction-range") }}
+                        {% if form.eve_fraction.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.eve_fraction.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            Interceptar sólo una parte de los qubits baja el QBER y le da a Eve
+                            más chances de pasar desapercibida.
+                        </div>
+                    </div>
+
+                    <!-- QBER previsto -->
+                    <div class="alert alert-info d-flex align-items-center gap-3" role="status">
+                        <i class="bi bi-calculator fs-4"></i>
+                        <div>
+                            <div class="fw-semibold">
+                                QBER previsto: <span id="qber-preview">0.0%</span>
+                                <span class="badge ms-2" id="qber-verdict">Clave segura</span>
+                            </div>
+                            <small class="text-muted">
+                                Estimación teórica (ruido + 25% de lo interceptado).
+                                La corrida real varía por el muestreo.
+                            </small>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="mb-4">
+                        {{ form.engine.label(class="form-label fw-semibold") }}
+                        {{ form.engine(class="form-select") }}
+                        <div class="form-text">
+                            Ambos motores describen el mismo canal y dan el mismo QBER; el
+                            analítico lo resuelve en forma cerrada y el de Qiskit simula los
+                            circuitos cuánticos qubit por qubit.
+                        </div>
+                    </div>
+
                     <div class="d-grid">
                         {{ form.submit(class="btn btn-primary btn-lg") }}
                     </div>
                 </form>
             </div>
         </div>
-        
+
         <!-- Información sobre BB84 -->
         <div class="accordion" id="infoAccordion">
             <div class="accordion-item">
@@ -68,7 +144,7 @@
                             <li><strong>Bob recibe y mide</strong> los qubits con bases aleatorias propias.</li>
                             <li><strong>Alice y Bob comparan públicamente sus bases</strong> y descartan mediciones con bases diferentes.</li>
                             <li><strong>Calculan la tasa de error</strong> (QBER) para detectar espionaje.</li>
-                            <li>Si QBER < umbral: <span class="badge bg-success">Clave segura</span>, si no: <span class="badge bg-danger">Comprometida</span></li>
+                            <li>Si QBER &lt; umbral: <span class="badge bg-success">Clave segura</span>, si no: <span class="badge bg-danger">Comprometida</span></li>
                         </ol>
                     </div>
                 </div>
@@ -76,4 +152,53 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const UMBRAL = 11.0;  // mismo umbral que aplica la capa de negocio
+
+    const noiseRange    = document.getElementById('noise-range');
+    const noiseValue    = document.getElementById('noise-value');
+    const fractionRange = document.getElementById('fraction-range');
+    const fractionValue = document.getElementById('fraction-value');
+    const strategy      = document.getElementById('eve-strategy');
+    const fractionGroup = document.getElementById('eve-fraction-group');
+    const preview       = document.getElementById('qber-preview');
+    const verdict       = document.getElementById('qber-verdict');
+
+    function hayEspia() {
+        return strategy.value !== 'none';
+    }
+
+    function actualizar() {
+        const ruido = Number(noiseRange.value) / 100;
+        const frac  = hayEspia() ? Number(fractionRange.value) / 100 : 0;
+
+        noiseValue.textContent = noiseRange.value + '%';
+        fractionValue.textContent = fractionRange.value + '%';
+
+        // Sin espía la fracción interceptada no aplica
+        fractionGroup.style.display = hayEspia() ? '' : 'none';
+
+        // Dos fuentes independientes de error se combinan como XOR de
+        // probabilidades: p_eve + ruido - 2*p_eve*ruido
+        const pEve = 0.25 * frac;
+        const qber = pEve + ruido - 2 * pEve * ruido;
+        const pct  = qber * 100;
+
+        preview.textContent = pct.toFixed(1) + '%';
+
+        const seguro = pct < UMBRAL;
+        verdict.textContent = seguro ? 'Clave segura' : 'Clave descartada';
+        verdict.className = 'badge ms-2 ' + (seguro ? 'bg-success' : 'bg-danger');
+    }
+
+    [noiseRange, fractionRange, strategy].forEach(function (el) {
+        el.addEventListener('input', actualizar);
+        el.addEventListener('change', actualizar);
+    });
+
+    actualizar();
+})();
+</script>
 {% endblock %}

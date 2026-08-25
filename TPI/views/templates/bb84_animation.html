@@ -173,11 +173,22 @@ async function runBB84Animation() {
     try {
         // Obtener parámetros de la URL
         const params = new URLSearchParams(window.location.search);
-        const keyLength = params.get('key_length') || 256;
-        const hasEveParam = params.get('has_eve') || '0';
-        const hasEve = hasEveParam === '1' || hasEveParam === 'true' || hasEveParam === 'True';
-        
-        console.log('key_length:', keyLength, 'has_eve:', hasEve);
+        const keyLength = parseInt(params.get('key_length') || '256', 10);
+        const noiseRate = parseInt(params.get('noise_rate') || '0', 10);
+        const engine = params.get('engine') || 'analytic';
+
+        // eve_strategy es la forma actual; has_eve se sigue aceptando por
+        // compatibilidad con enlaces viejos.
+        let eveStrategy = params.get('eve_strategy');
+        if (!eveStrategy) {
+            const legacy = params.get('has_eve') || '0';
+            eveStrategy = (legacy === '1' || legacy.toLowerCase() === 'true')
+                ? 'intercept_resend' : 'none';
+        }
+        const eveFraction = eveStrategy === 'none'
+            ? 0
+            : parseInt(params.get('eve_fraction') || '100', 10);
+        const hasEve = eveStrategy !== 'none';
         
         // Mostrar Eve en el canal si está habilitada
         if (hasEve) {
@@ -196,8 +207,11 @@ async function runBB84Animation() {
             },
             credentials: 'include',
             body: JSON.stringify({
-                key_length: parseInt(keyLength),
-                has_eve: hasEve
+                key_length: keyLength,
+                noise_rate: noiseRate,
+                eve_strategy: eveStrategy,
+                eve_fraction: eveFraction,
+                engine: engine
             })
         });
         

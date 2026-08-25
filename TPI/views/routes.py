@@ -103,13 +103,17 @@ def configure_routes(app):
         form = SimulationForm()
         
         if form.validate_on_submit():
-            key_length = form.key_length.data
-            has_eve = form.has_eve.data
-            
-            # Redirigir a la animación con parámetros
-            # Convertir bool a int para la URL (True -> 1, False -> 0)
-            return redirect(url_for('animation', key_length=key_length, has_eve=int(has_eve)))
-        
+            # Los parametros viajan por la URL para que la animacion pueda
+            # relanzar la simulacion sin volver a pasar por el formulario.
+            return redirect(url_for(
+                'animation',
+                key_length=form.key_length.data,
+                noise_rate=form.noise_rate.data,
+                eve_strategy=form.eve_strategy.data,
+                eve_fraction=form.eve_fraction.data,
+                engine=form.engine.data,
+            ))
+
         return render_template('simulator.html', form=form)
     
     
@@ -146,21 +150,45 @@ def configure_routes(app):
             if not current_user.is_authenticated:
                 return jsonify({'success': False, 'message': 'No autorizado'}), 403
             
-            data = request.get_json()
-            if not data:
-                return jsonify({'success': False, 'message': 'Datos inválidos'}), 400
+            # silent=True para que un cuerpo vacío o mal formado devuelva 400
+            # y no una excepción que termine en 500.
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict):
+                return jsonify({
+                    'success': False,
+                    'message': 'El cuerpo del pedido debe ser un objeto JSON'
+                }), 400
             
-            key_length = data.get('key_length', 256)
-            has_eve = data.get('has_eve', False)
-            
+            try:
+                key_length = int(data.get('key_length', 256))
+                # Los porcentajes llegan como enteros 0-100 desde la interfaz
+                noise_rate = float(data.get('noise_rate', 0)) / 100.0
+                eve_fraction = float(data.get('eve_fraction', 100)) / 100.0
+            except (TypeError, ValueError):
+                return jsonify({
+                    'success': False,
+                    'message': 'Los parametros numericos son invalidos'
+                }), 400
+
+            eve_strategy = data.get('eve_strategy')
+            # Retrocompatibilidad con clientes que sigan mandando has_eve
+            if eve_strategy is None:
+                eve_strategy = (
+                    'intercept_resend' if data.get('has_eve') else 'none'
+                )
+
             # Ejecutar simulación (capa de negocio)
             result = simulation_controller.run_bb84_simulation(
                 user_id=current_user.id,
                 key_length=key_length,
-                has_eve=has_eve
+                has_eve=eve_strategy != 'none',
+                noise_rate=noise_rate,
+                eve_strategy=eve_strategy,
+                eve_fraction=eve_fraction,
+                engine=data.get('engine', 'analytic'),
             )
-            
-            return jsonify(result), 200
+
+            return jsonify(result), 200 if result['success'] else 400
         
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500
