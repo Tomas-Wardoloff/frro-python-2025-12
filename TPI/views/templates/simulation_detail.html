@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Simulación #{{ session.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+    <h2 class="mb-0">
+        <i class="bi bi-file-earmark-bar-graph"></i> Simulación #{{ session.id }}
+    </h2>
+    <a href="{{ url_for('history') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Volver al historial
+    </a>
+</div>
+
+<!-- Veredicto -->
+<div class="alert {{ 'alert-success' if session.result == 'secure' else 'alert-danger' }} d-flex align-items-center gap-3">
+    <i class="bi {{ 'bi-shield-check' if session.result == 'secure' else 'bi-shield-exclamation' }} fs-1"></i>
+    <div>
+        <h4 class="alert-heading mb-1">
+            {{ 'Clave segura' if session.result == 'secure' else 'Clave descartada' }}
+        </h4>
+        <p class="mb-0">
+            QBER estimado: <strong>{{ "%.2f"|format((session.error_rate or 0) * 100) }}%</strong>
+            &nbsp;·&nbsp; umbral: <strong>11%</strong>
+        </p>
+    </div>
+</div>
+
+<!-- Parametros de la corrida -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-sliders"></i> Configuración</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Qubits enviados</div>
+                <div class="fs-5">{{ session.key_length }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Ruido del canal</div>
+                <div class="fs-5">{{ "%.0f"|format((session.noise_rate or 0) * 100) }}%</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Espía</div>
+                <div class="fs-5">
+                    {% if session.eve_strategy == 'none' %}
+                        <span class="text-muted">Ninguno</span>
+                    {% else %}
+                        {{ "%.0f"|format((session.eve_fraction or 0) * 100) }}% interceptado
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Motor</div>
+                <div class="fs-5">{{ 'Qiskit' if session.engine == 'qiskit' else 'Analítico' }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Embudo del cribado -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-funnel"></i> De los qubits enviados a la clave final</div>
+    <div class="card-body">
+        <div class="row text-center g-3">
+            <div class="col-4">
+                <div class="display-6">{{ session.key_length }}</div>
+                <div class="text-muted small">Qubits enviados</div>
+            </div>
+            <div class="col-4">
+                <div class="display-6">{{ session.sifted_length if session.sifted_length is not none else '—' }}</div>
+                <div class="text-muted small">Sobreviven al cribado<br>(bases coincidentes)</div>
+            </div>
+            <div class="col-4">
+                <div class="display-6">{{ session.final_length if session.final_length is not none else '—' }}</div>
+                <div class="text-muted small">Clave final<br>(menos los bits revelados)</div>
+            </div>
+        </div>
+        <p class="text-muted small mb-0 mt-3">
+            Alice y Bob eligen bases al azar e independientemente, así que coinciden en
+            aproximadamente la mitad de los qubits. De los que sobreviven, una muestra se
+            sacrifica públicamente para estimar el error, y esos bits ya no pueden formar
+            parte de la clave.
+        </p>
+    </div>
+</div>
+
+<!-- Clave final -->
+{% if session.final_key %}
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-key"></i> Clave final ({{ session.final_key|length }} bits)</div>
+    <div class="card-body">
+        <code class="d-block" style="word-break: break-all; line-height: 1.7;">{{ session.final_key }}</code>
+    </div>
+</div>
+{% endif %}
+
+<!-- Traza bit a bit -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-table"></i> Traza del protocolo</span>
+        {% if trace and trace.truncated %}
+            <span class="badge bg-secondary">
+                Primeros {{ trace.shown_bits }} de {{ trace.total_bits }} qubits
+            </span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if trace %}
+            <p class="text-muted small">
+                Cada columna es un qubit. Las filas resaltadas son aquellas donde las bases de
+                Alice y Bob coincidieron: sólo ésas entran al cribado.
+                <span class="badge bg-secondary">+</span> es la base rectilínea y
+                <span class="badge bg-secondary">×</span> la diagonal.
+            </p>
+
+            <div class="table-responsive" style="max-height: 460px; overflow-y: auto;">
+                <table class="table table-sm table-hover align-middle mb-0" style="font-family: monospace;">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>#</th>
+                            <th>Bit Alice</th>
+                            <th>Base Alice</th>
+                            <th>Base Bob</th>
+                            <th>Midió Bob</th>
+                            <th>Eve</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set sifted = trace.sifted_indices %}
+                        {% for i in range(trace.shown_bits) %}
+                            {% set coincide = i in sifted %}
+                            {% set error = coincide and trace.bob_results[i] != trace.alice_bits[i] %}
+                            <tr class="{{ 'table-warning' if error else ('table-light' if coincide else '') }}">
+                                <td class="text-muted">{{ i }}</td>
+                                <td><strong>{{ trace.alice_bits[i] }}</strong></td>
+                                <td>{{ '+' if trace.alice_bases[i] == 0 else '×' }}</td>
+                                <td>{{ '+' if trace.bob_bases[i] == 0 else '×' }}</td>
+                                <td><strong>{{ trace.bob_results[i] }}</strong></td>
+                                <td>
+                                    {% if trace.intercepted[i] %}
+                                        <span class="text-danger">
+                                            {{ trace.eve_bits[i] }}{{ ' +' if trace.eve_bases[i] == 0 else ' ×' }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not coincide %}
+                                        <span class="text-muted small">Descartado</span>
+                                    {% elif error %}
+                                        <span class="text-danger small fw-bold">Error</span>
+                                    {% else %}
+                                        <span class="text-success small">OK</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle"></i>
+                Esta simulación se ejecutó antes de que se guardara la traza, así que sólo
+                quedan sus métricas. Las corridas nuevas sí la incluyen.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -2,6 +2,7 @@
 Modelos de la Base de Datos
 Representan las entidades del dominio
 """
+import json
 from datetime import datetime, timezone
 
 from flask_login import UserMixin
@@ -69,8 +70,25 @@ class SimulationSession(db.Model):
     error_rate = db.Column(db.Float, nullable=True)
     timestamp = db.Column(db.DateTime, nullable=False, default=utc_now, index=True)
 
+    # Parámetros del canal y del ataque
+    noise_rate = db.Column(db.Float, nullable=True, default=0.0)
+    eve_strategy = db.Column(db.String(30), nullable=True, default='none')
+    eve_fraction = db.Column(db.Float, nullable=True, default=0.0)
+    engine = db.Column(db.String(20), nullable=True, default='analytic')
+
+    # Métricas del cribado, para no recalcularlas al listar el historial
+    sifted_length = db.Column(db.Integer, nullable=True)
+    final_length = db.Column(db.Integer, nullable=True)
+
     # Foreign Key
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    trace = db.relationship(
+        'SimulationTrace',
+        backref='session',
+        uselist=False,
+        cascade='all, delete-orphan'
+    )
 
     def __repr__(self):
         return f"<SimulationSession {self.id} - {self.result}>"
@@ -85,5 +103,42 @@ class SimulationSession(db.Model):
             'final_key': self.final_key,
             'error_rate': self.error_rate,
             'timestamp': self.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'noise_rate': self.noise_rate or 0.0,
+            'eve_strategy': self.eve_strategy or 'none',
+            'eve_fraction': self.eve_fraction or 0.0,
+            'engine': self.engine or 'analytic',
+            'sifted_length': self.sifted_length,
+            'final_length': self.final_length,
             'user_id': self.user_id
         }
+
+
+class SimulationTrace(db.Model):
+    """
+    Traza bit a bit de una simulación.
+
+    Vive en una tabla aparte (1:1 con SimulationSession) y se carga sólo cuando
+    se pide, para que listar el historial no tenga que traer los blobs JSON.
+    """
+    __tablename__ = 'simulation_trace'
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(
+        db.Integer,
+        db.ForeignKey('simulation_session.id'),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+    # JSON con las listas del protocolo, recortadas a MAX_TRACE_BITS
+    payload = db.Column(db.Text, nullable=False)
+    truncated = db.Column(db.Boolean, nullable=False, default=False)
+
+    def __repr__(self):
+        return f"<SimulationTrace session={self.session_id}>"
+
+    def to_dict(self):
+        """Devuelve la traza deserializada."""
+        datos = json.loads(self.payload)
+        datos['truncated'] = self.truncated
+        return datos

@@ -3,7 +3,9 @@ Rutas de la aplicación (Capa de Presentación)
 Esta capa NO accede directamente a la base de datos
 Solo usa la capa de negocio (business)
 """
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import (
+    abort, flash, jsonify, redirect, render_template, request, url_for
+)
 from flask_login import login_user, logout_user, login_required, current_user
 
 from views.forms import RegisterForm, LoginForm, SimulationForm
@@ -120,11 +122,22 @@ def configure_routes(app):
     @app.route('/simulation/<int:session_id>')
     @login_required
     def simulation_result(session_id):
-        """Muestra el resultado de una simulación específica"""
-        # TODO: Implementar en la siguiente fase
-        # Por ahora, redirigir al dashboard
-        flash('Visualización de resultados en desarrollo', 'info')
-        return redirect(url_for('dashboard'))
+        """Muestra el detalle bit a bit de una simulación.
+
+        La capa de negocio valida que la sesión sea del usuario que la pide; si
+        no lo es se responde 404, para no revelar siquiera que existe.
+        """
+        detalle = simulation_controller.get_simulation_detail(
+            session_id, current_user.id
+        )
+        if detalle is None:
+            abort(404)
+
+        return render_template(
+            'simulation_detail.html',
+            session=detalle['session'],
+            trace=detalle['trace'],
+        )
     
     
     @app.route('/history')

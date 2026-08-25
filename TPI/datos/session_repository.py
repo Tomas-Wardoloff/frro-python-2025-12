@@ -2,10 +2,15 @@
 Capa de Datos - Repositorio de Sesiones de Simulación
 Contiene todas las operaciones de acceso a datos relacionadas con sesiones
 """
-from datos.models import SimulationSession, db
+import json
+
+from datos.models import SimulationSession, SimulationTrace, db
 
 
-def create_session(user_id, key_length, has_eve, result, final_key=None, error_rate=None):
+def create_session(user_id, key_length, has_eve, result, final_key=None,
+                   error_rate=None, noise_rate=0.0, eve_strategy='none',
+                   eve_fraction=0.0, engine='analytic', sifted_length=None,
+                   final_length=None, trace=None, trace_truncated=False):
     """
     Crea una nueva sesión de simulación en la base de datos
 
@@ -16,6 +21,14 @@ def create_session(user_id, key_length, has_eve, result, final_key=None, error_r
         result (str): Resultado de la simulación ('secure' o 'compromised')
         final_key (str, optional): La clave final generada
         error_rate (float, optional): Tasa de error cuántico
+        noise_rate (float): Ruido del canal
+        eve_strategy (str): Estrategia del espía
+        eve_fraction (float): Fracción de qubits interceptados
+        engine (str): Motor con el que se resolvió el canal
+        sifted_length (int, optional): Bits que sobrevivieron al cribado
+        final_length (int, optional): Bits de la clave final
+        trace (dict, optional): Traza bit a bit del protocolo
+        trace_truncated (bool): Si la traza se recortó
 
     Returns:
         SimulationSession: La sesión creada
@@ -26,11 +39,41 @@ def create_session(user_id, key_length, has_eve, result, final_key=None, error_r
         has_eve=has_eve,
         result=result,
         final_key=final_key,
-        error_rate=error_rate
+        error_rate=error_rate,
+        noise_rate=noise_rate,
+        eve_strategy=eve_strategy,
+        eve_fraction=eve_fraction,
+        engine=engine,
+        sifted_length=sifted_length,
+        final_length=final_length,
     )
     db.session.add(session)
+
+    if trace is not None:
+        session.trace = SimulationTrace(
+            payload=json.dumps(trace, separators=(',', ':')),
+            truncated=trace_truncated,
+        )
+
     db.session.commit()
     return session
+
+
+def get_session_trace(session_id, user_id):
+    """
+    Devuelve la traza de una sesión, validando que sea del usuario.
+
+    Args:
+        session_id (int): ID de la sesión
+        user_id (int): ID del usuario que la pide
+
+    Returns:
+        dict: La traza deserializada, o None si no hay o no le pertenece
+    """
+    session = get_user_session(session_id, user_id)
+    if session is None or session.trace is None:
+        return None
+    return session.trace.to_dict()
 
 
 def get_session_by_id(session_id):

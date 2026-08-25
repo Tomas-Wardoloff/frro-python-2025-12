@@ -122,6 +122,8 @@ def run_bb84_simulation(user_id, key_length, has_eve, *, noise_rate=0.0,
     if not resultado.success:
         return {'success': False, 'message': resultado.message}
 
+    traza = resultado.trace()
+
     session = session_repository.create_session(
         user_id=user_id,
         key_length=key_length,
@@ -129,6 +131,14 @@ def run_bb84_simulation(user_id, key_length, has_eve, *, noise_rate=0.0,
         result=resultado.result,
         final_key=resultado.final_key,
         error_rate=resultado.error_rate,
+        noise_rate=resultado.noise_rate,
+        eve_strategy=resultado.eve_strategy,
+        eve_fraction=resultado.eve_fraction,
+        engine=resultado.engine,
+        sifted_length=resultado.sifted_length,
+        final_length=resultado.final_length,
+        trace=traza,
+        trace_truncated=resultado.is_truncated(),
     )
 
     resumen = resultado.summary()
@@ -138,7 +148,7 @@ def run_bb84_simulation(user_id, key_length, has_eve, *, noise_rate=0.0,
         'session': session.to_dict(),
         # Traza real del protocolo, para que la vista dibuje lo que pasó
         # de verdad en lugar de inventar bits.
-        'trace': resultado.trace(),
+        'trace': traza,
         'simulation_details': {
             'key_length_initial': resumen['key_length_initial'],
             'key_length_after_sifting': resumen['key_length_after_sifting'],
@@ -150,4 +160,28 @@ def run_bb84_simulation(user_id, key_length, has_eve, *, noise_rate=0.0,
             'eve_fraction': resumen['eve_fraction'],
             'engine': resumen['engine'],
         },
+    }
+
+
+def get_simulation_detail(session_id, user_id):
+    """
+    Devuelve una simulación con su traza, validando que sea del usuario.
+
+    Regla de negocio: una sesión sólo la puede ver quien la ejecutó. La
+    validación se hace acá y en la capa de datos, no en la vista.
+
+    Args:
+        session_id (int): ID de la sesión
+        user_id (int): ID del usuario que la pide
+
+    Returns:
+        dict | None: {'session': ..., 'trace': ...} o None si no le pertenece
+    """
+    session = session_repository.get_user_session(session_id, user_id)
+    if session is None:
+        return None
+
+    return {
+        'session': session.to_dict(),
+        'trace': session.trace.to_dict() if session.trace else None,
     }

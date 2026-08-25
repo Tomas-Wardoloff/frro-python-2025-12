@@ -96,7 +96,7 @@
                             <tbody>
                                 {% for session in recent_sessions %}
                                 <tr>
-                                    <td>#{{ session.id }}</td>
+                                    <td><a href="{{ url_for('simulation_result', session_id=session.id) }}" class="text-decoration-none">#{{ session.id }}</a></td>
                                     <td>{{ session.timestamp }}</td>
                                     <td>{{ session.key_length }} bits</td>
                                     <td>

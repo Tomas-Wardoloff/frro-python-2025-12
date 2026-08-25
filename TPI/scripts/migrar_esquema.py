@@ -20,7 +20,19 @@ import sys
 # vacías.
 COLUMNAS = [
     ('user', 'created_at', 'DATETIME'),
+    # Parametros del canal y del ataque (las corridas viejas quedan en NULL,
+    # y to_dict() las reporta con sus valores por defecto)
+    ('simulation_session', 'noise_rate', 'FLOAT'),
+    ('simulation_session', 'eve_strategy', 'VARCHAR(30)'),
+    ('simulation_session', 'eve_fraction', 'FLOAT'),
+    ('simulation_session', 'engine', 'VARCHAR(20)'),
+    ('simulation_session', 'sifted_length', 'INTEGER'),
+    ('simulation_session', 'final_length', 'INTEGER'),
 ]
+
+# Las tablas nuevas (simulation_trace) las crea db.create_all() al levantar la
+# app, porque create_all si crea tablas faltantes; lo que no hace es agregar
+# columnas a tablas que ya existen, que es de lo que se ocupa este script.
 
 
 def columnas_existentes(con, tabla):
