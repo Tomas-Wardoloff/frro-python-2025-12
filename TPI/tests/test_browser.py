@@ -386,6 +386,25 @@ def _ancho_del_documento(pagina):
     return pagina.evaluate(_JS_ANCHO)
 
 
+def _ancho_estable(pagina, intentos=12, pausa=250):
+    """Mide el ancho del documento hasta que deja de cambiar.
+
+    Con una espera fija la medicion puede caer mientras Chart.js todavia
+    redimensiona sus canvas o las fuentes siguen cargando, y el ancho reportado
+    es momentaneamente mayor que el definitivo. Eso hacia fallar estos tests al
+    azar. Se espera a que dos lecturas seguidas coincidan.
+    """
+    pagina.wait_for_load_state('networkidle')
+    anterior = None
+    for _ in range(intentos):
+        actual = _ancho_del_documento(pagina)
+        if actual == anterior:
+            return actual
+        anterior = actual
+        pagina.wait_for_timeout(pausa)
+    return anterior
+
+
 def _elementos_que_desbordan(pagina, ancho):
     """Los elementos que se salen del viewport, para poder arreglarlos."""
     return pagina.evaluate(_JS_DESBORDES, ancho)
@@ -408,8 +427,7 @@ class TestResponsive:
         try:
             for ruta in ('/', '/login', '/register'):
                 pag.goto(f'{servidor}{ruta}')
-                pag.wait_for_timeout(300)
-                doc = _ancho_del_documento(pag)
+                doc = _ancho_estable(pag)
                 assert doc <= ancho + 2, (
                     f'{ruta} en {dispositivo}: el documento mide {doc}px sobre '
                     f'{ancho}px. Desbordan: {_elementos_que_desbordan(pag, ancho)}'
@@ -431,8 +449,7 @@ class TestResponsive:
         for nombre, ruta in (('simulador', '/simulator'), ('dashboard', '/dashboard'),
                              ('historial', '/history'), ('detalle', f'/simulation/{sid}')):
             pagina.goto(f'{servidor}{ruta}')
-            pagina.wait_for_timeout(600)
-            doc = _ancho_del_documento(pagina)
+            doc = _ancho_estable(pagina)
             assert doc <= ancho + 2, (
                 f'{nombre} en {dispositivo}: el documento mide {doc}px sobre '
                 f'{ancho}px. Desbordan: {_elementos_que_desbordan(pagina, ancho)}'
@@ -453,4 +470,4 @@ class TestResponsive:
             " return t ? {scroll: t.scrollWidth, visible: t.clientWidth} : null; }"
         )
         assert contenedor, 'la tabla no esta en un contenedor scrolleable'
-        assert _ancho_del_documento(pagina) <= 377, 'la tabla empuja la pagina'
+        assert _ancho_estable(pagina) <= 377, 'la tabla empuja la pagina'
